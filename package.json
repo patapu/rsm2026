@@ -3,20 +3,37 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "generate-pdf": "tsx scripts/generate-pdf.tsx",
+    "predev": "npm run generate-pdf",
     "dev": "next dev",
+    "prebuild": "npm run generate-pdf",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test": "vitest --run"
   },
   "dependencies": {
+    "@react-pdf/renderer": "^4.5.1",
+    "@tailwindcss/postcss": "^4.3.0",
+    "ioredis": "^5.10.0",
     "next": "16.2.0",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "react-markdown": "^9.1.0",
+    "tailwindcss": "^4.2.4",
+    "zod": "^4.1.7"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6.0.1",
     "babel-plugin-react-compiler": "1.0.0",
-    "typescript": "^5"
+    "fast-check": "^4.7.0",
+    "jsdom": "^29.1.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5",
+    "vitest": "^4.1.5"
   }
 }

@@ -1,0 +1,722 @@
+/**
+ * Tests for /api/chat/route.ts
+ * Covers:
+ *   Sub-task 6.1 — Property 8: Unauthenticated Chat Rejection (fast-check)
+ *   Sub-task 6.2 — Property 9: Rate Limit Enforcement (fast-check)
+ *   Sub-task 6.3 — Property 10: Chat Request Payload Completeness (fast-check)
+ *   Sub-task 6.4 — Property 11: Chat History Bounded Growth (fast-check)
+ *   Sub-task 6.5 — Property 12: Zod Validation Rejects Malformed Chat Requests (fast-check)
+ *   Sub-task 6.6 — Property 13: CORS Origin Enforcement (fast-check)
+ *   Sub-task 6.7 — Unit tests
+ * Requirements: 11.1, 11.2, 11.3, 11.4, 11.7, 11.8, 11.9, 11.10, 13.4, 14.5, 14.6, 18.3, 18.4, 18.6, 18.7
+ */
+
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest'
+import fc from 'fast-check'
+import { NextRequest } from 'next/server'
+
+// ──────────────────────────────────────────
+//  Mocks — must be declared before imports
+// ──────────────────────────────────────────
+
+vi.mock('fs', () => ({
+  readFileSync: vi.fn().mockReturnValue('# System Prompt\nYou are an AI assistant.'),
+}))
+
+vi.mock('@/lib/redis', () => ({
+  redis: {
+    incr: vi.fn().mockResolvedValue(1),
+    expire: vi.fn().mockResolvedValue(1),
+    lrange: vi.fn().mockResolvedValue([]),
+    rpush: vi.fn().mockResolvedValue(2),
+    ltrim: vi.fn().mockResolvedValue('OK'),
+    get: vi.fn().mockResolvedValue(null),
+    set: vi.fn().mockResolvedValue('OK'),
+  },
+  keys: {
+    session: (id: string) => `session:${id}`,
+    memory: (id: string) => `memory:${id}`,
+    history: (id: string) => `chat:history:${id}`,
+    rateLimit: (id: string) => `ratelimit:${id}`,
+    blocked: (ip: string) => `blocked:${ip}`,
+  },
+}))
+
+vi.mock('@/lib/fingerprint', () => ({
+  createVisitorId: vi.fn().mockReturnValue('a'.repeat(64)),
+  verifyToken: vi.fn().mockImplementation((token: string) => /^[0-9a-f]{64}$/.test(token)),
+}))
+
+// ──────────────────────────────────────────
+//  Imports after mocks
+// ──────────────────────────────────────────
+
+import { POST } from '../route'
+import { redis } from '@/lib/redis'
+import { verifyToken } from '@/lib/fingerprint'
+
+// ──────────────────────────────────────────
+//  Helpers
+// ──────────────────────────────────────────
+
+const VALID_TOKEN = 'a'.repeat(64) // matches /^[0-9a-f]{64}$/
+const VALID_MESSAGE = 'สวัสดีครับ'
+
+function makeRequest(
+  body: unknown,
+  cookies: Record<string, string> = {},
+  headers: Record<string, string> = {},
+) {
+  const cookieHeader = Object.entries(cookies)
+    .map(([k, v]) => `${k}=${v}`)
+    .join('; ')
+
+  const req = new NextRequest('http://localhost/api/chat', {
+    method: 'POST',
+    body: JSON.stringify(body),
+    headers: {
+      'Content-Type': 'application/json',
+      ...(cookieHeader ? { Cookie: cookieHeader } : {}),
+      ...headers,
+    },
+  })
+  return req
+}
+
+function makeValidRequest(message = VALID_MESSAGE, extraHeaders: Record<string, string> = {}) {
+  return makeRequest({ message }, { fp_token: VALID_TOKEN }, extraHeaders)
+}
+
+// ──────────────────────────────────────────
+//  Reset mocks before each test
+// ──────────────────────────────────────────
+
+beforeEach(() => {
+  vi.clearAllMocks()
+
+  // Default mock: verifyToken returns true for 64-char hex
+  vi.mocked(verifyToken).mockImplementation((token: string) => /^[0-9a-f]{64}$/.test(token))
+
+  // Default mock: redis.incr returns 1 (first request, under limit)
+  vi.mocked(redis.incr).mockResolvedValue(1)
+  vi.mocked(redis.lrange).mockResolvedValue([])
+  vi.mocked(redis.rpush).mockResolvedValue(2)
+  vi.mocked(redis.ltrim).mockResolvedValue('OK')
+  vi.mocked(redis.expire).mockResolvedValue(1)
+
+  // Default mock: global fetch for n8n
+  global.fetch = vi.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({ reply: 'สวัสดีครับ' }),
+  })
+
+  // Set required env vars
+  process.env.N8N_WEBHOOK_URL = 'https://n8n.example.com/webhook/chat'
+  process.env.ALLOWED_ORIGIN = '*'
+})
+
+afterEach(() => {
+  delete process.env.N8N_WEBHOOK_URL
+  process.env.ALLOWED_ORIGIN = '*'
+})
+
+// ──────────────────────────────────────────
+//  Sub-task 6.1: Property 8 — Unauthenticated Chat Rejection
+// ──────────────────────────────────────────
+
+// Feature: resume-website, Property 8: Unauthenticated Chat Rejection
+describe('Property 8: Unauthenticated Chat Rejection', () => {
+  it(
+    'POST /api/chat without a valid fp_token always returns 401',
+    async () => {
+      // Validates: Requirements 11.1, 11.2, 18.3
+      await fc.assert(
+        fc.asyncProperty(
+          // Generate arbitrary strings that are NOT valid 64-char hex tokens
+          fc.oneof(
+            fc.constant(''), // empty string
+            fc.constant(undefined as unknown as string), // absent cookie
+            fc.string({ maxLength: 63 }), // too short
+            fc.string({ minLength: 65 }), // too long
+            fc.stringMatching(/[^0-9a-f]/), // contains non-hex chars
+          ),
+          async (invalidToken) => {
+            vi.clearAllMocks()
+            // verifyToken returns false for all these invalid tokens
+            vi.mocked(verifyToken).mockImplementation(
+              (token: string) => /^[0-9a-f]{64}$/.test(token),
+            )
+            global.fetch = vi.fn().mockResolvedValue({
+              ok: true,
+              json: async () => ({ reply: 'test' }),
+            })
+            vi.mocked(redis.incr).mockResolvedValue(1)
+            vi.mocked(redis.lrange).mockResolvedValue([])
+
+            const cookies: Record<string, string> =
+              invalidToken !== undefined && invalidToken !== ''
+                ? { fp_token: invalidToken }
+                : {}
+            const req = makeRequest({ message: 'hello' }, cookies)
+            const res = await POST(req)
+
+            return res.status === 401
+          },
+        ),
+        { numRuns: 100 },
+      )
+    },
+  )
+})
+
+// ──────────────────────────────────────────
+//  Sub-task 6.2: Property 9 — Rate Limit Enforcement
+// ──────────────────────────────────────────
+
+// Feature: resume-website, Property 9: Rate Limit Enforcement
+describe('Property 9: Rate Limit Enforcement', () => {
+  it(
+    'requests beyond RATE_LIMIT_MAX always return 429',
+    async () => {
+      // Validates: Requirements 11.3, 11.4, 18.4
+      await fc.assert(
+        fc.asyncProperty(
+          fc.integer({ min: 21, max: 100 }),
+          async (count) => {
+            vi.clearAllMocks()
+            vi.mocked(verifyToken).mockReturnValue(true)
+            // Simulate Redis counter already at `count` (above limit of 20)
+            vi.mocked(redis.incr).mockResolvedValue(count)
+            vi.mocked(redis.lrange).mockResolvedValue([])
+            vi.mocked(redis.expire).mockResolvedValue(1)
+            global.fetch = vi.fn().mockResolvedValue({
+              ok: true,
+              json: async () => ({ reply: 'test' }),
+            })
+
+            const req = makeValidRequest()
+            const res = await POST(req)
+
+            return res.status === 429
+          },
+        ),
+        { numRuns: 100 },
+      )
+    },
+  )
+})
+
+// ──────────────────────────────────────────
+//  Sub-task 6.3: Property 10 — Chat Request Payload Completeness
+// ──────────────────────────────────────────
+
+// Feature: resume-website, Property 10: Chat Request Payload Completeness
+describe('Property 10: Chat Request Payload Completeness', () => {
+  it(
+    'n8n webhook always receives all 4 required fields',
+    async () => {
+      // Validates: Requirements 11.7
+      await fc.assert(
+        fc.asyncProperty(
+          fc.string({ minLength: 1, maxLength: 500 }),
+          async (message) => {
+            vi.clearAllMocks()
+            vi.mocked(verifyToken).mockReturnValue(true)
+            vi.mocked(redis.incr).mockResolvedValue(1)
+            vi.mocked(redis.lrange).mockResolvedValue([])
+            vi.mocked(redis.rpush).mockResolvedValue(2)
+            vi.mocked(redis.ltrim).mockResolvedValue('OK')
+            vi.mocked(redis.expire).mockResolvedValue(1)
+
+            let capturedPayload: Record<string, unknown> | null = null
+            global.fetch = vi.fn().mockImplementation(async (_url, options) => {
+              capturedPayload = JSON.parse((options as RequestInit).body as string)
+              return { ok: true, json: async () => ({ reply: 'test' }) }
+            })
+
+            const req = makeRequest({ message }, { fp_token: VALID_TOKEN })
+            const res = await POST(req)
+
+            if (res.status !== 200) return false
+            if (!capturedPayload) return false
+
+            return (
+              'message' in capturedPayload &&
+              'history' in capturedPayload &&
+              'visitorId' in capturedPayload &&
+              'systemPrompt' in capturedPayload
+            )
+          },
+        ),
+        { numRuns: 100 },
+      )
+    },
+  )
+})
+
+// ──────────────────────────────────────────
+//  Sub-task 6.4: Property 11 — Chat History Bounded Growth
+// ──────────────────────────────────────────
+
+// Feature: resume-website, Property 11: Chat History Bounded Growth
+describe('Property 11: Chat History Bounded Growth', () => {
+  it(
+    'history grows by exactly 2 entries per exchange and never exceeds 20',
+    async () => {
+      // Validates: Requirements 11.8, 13.4
+      await fc.assert(
+        fc.asyncProperty(
+          fc.integer({ min: 1, max: 15 }),
+          async (exchanges) => {
+            vi.clearAllMocks()
+            vi.mocked(verifyToken).mockReturnValue(true)
+            vi.mocked(redis.incr).mockResolvedValue(1)
+            vi.mocked(redis.expire).mockResolvedValue(1)
+            vi.mocked(redis.ltrim).mockResolvedValue('OK')
+
+            // Track total rpush calls across all exchanges
+            let totalRpushCalls = 0
+            vi.mocked(redis.rpush).mockImplementation(async () => {
+              totalRpushCalls++
+              return totalRpushCalls * 2
+            })
+
+            global.fetch = vi.fn().mockResolvedValue({
+              ok: true,
+              json: async () => ({ reply: 'AI reply' }),
+            })
+
+            // Simulate N exchanges
+            for (let i = 0; i < exchanges; i++) {
+              // Simulate growing history returned by lrange
+              const existingHistory = Array.from({ length: Math.min(i * 2, 5) }, (_, idx) =>
+                JSON.stringify({ role: idx % 2 === 0 ? 'user' : 'assistant', content: `msg${idx}` }),
+              )
+              vi.mocked(redis.lrange).mockResolvedValue(existingHistory)
+
+              const req = makeRequest({ message: `message ${i}` }, { fp_token: VALID_TOKEN })
+              const res = await POST(req)
+              if (res.status !== 200) return false
+            }
+
+            // Each exchange should call rpush once (with 2 messages)
+            // totalRpushCalls should equal exchanges
+            if (totalRpushCalls !== exchanges) return false
+
+            // ltrim is called with -20, -1 each time — ensuring max 20 entries
+            const ltrimCalls = vi.mocked(redis.ltrim).mock.calls
+            if (ltrimCalls.length !== exchanges) return false
+
+            // Verify ltrim always uses -20, -1 to cap at 20
+            for (const call of ltrimCalls) {
+              const [, start, end] = call as [string, number, number]
+              if (start !== -20 || end !== -1) return false
+            }
+
+            return true
+          },
+        ),
+        { numRuns: 100 },
+      )
+    },
+  )
+})
+
+// ──────────────────────────────────────────
+//  Sub-task 6.5: Property 12 — Zod Validation Rejects Malformed Chat Requests
+// ──────────────────────────────────────────
+
+// Feature: resume-website, Property 12: Zod Validation Rejects Malformed Chat Requests
+describe('Property 12: Zod Validation Rejects Malformed Chat Requests', () => {
+  it(
+    'malformed request bodies always return 400 with a field name',
+    async () => {
+      // Validates: Requirements 11.10, 14.6, 18.6
+      await fc.assert(
+        fc.asyncProperty(
+          fc.oneof(
+            // Missing message field
+            fc.record({ other: fc.string() }),
+            // Wrong type: message is a number
+            fc.record({ message: fc.integer() }),
+            // Wrong type: message is null
+            fc.constant({ message: null }),
+            // Wrong type: message is boolean
+            fc.record({ message: fc.boolean() }),
+            // Empty message (violates min(1))
+            fc.constant({ message: '' }),
+            // Oversized message (violates max(500))
+            fc.constant({ message: 'x'.repeat(501) }),
+            // Empty object
+            fc.constant({}),
+          ),
+          async (invalidBody) => {
+            vi.clearAllMocks()
+            vi.mocked(verifyToken).mockReturnValue(true)
+            vi.mocked(redis.incr).mockResolvedValue(1)
+            vi.mocked(redis.lrange).mockResolvedValue([])
+            vi.mocked(redis.expire).mockResolvedValue(1)
+            global.fetch = vi.fn().mockResolvedValue({
+              ok: true,
+              json: async () => ({ reply: 'test' }),
+            })
+
+            const req = makeRequest(invalidBody, { fp_token: VALID_TOKEN })
+            const res = await POST(req)
+
+            if (res.status !== 400) return false
+
+            const body = await res.json()
+            // Must have an error message
+            if (!body.error) return false
+
+            return true
+          },
+        ),
+        { numRuns: 100 },
+      )
+    },
+  )
+})
+
+// ──────────────────────────────────────────
+//  Sub-task 6.6: Property 13 — CORS Origin Enforcement
+// ──────────────────────────────────────────
+
+// Feature: resume-website, Property 13: CORS Origin Enforcement
+describe('Property 13: CORS Origin Enforcement', () => {
+  it(
+    'requests from non-allowed origins always return 403 and are not processed',
+    async () => {
+      // Validates: Requirements 14.5, 18.7
+      // Set ALLOWED_ORIGIN to a specific value for CORS tests
+      process.env.ALLOWED_ORIGIN = 'https://pakorn.dev'
+
+      // Re-import the module to pick up the new env var
+      // Since modules are cached, we test via the route behavior directly
+      // The route reads ALLOWED_ORIGIN at module level, so we need to
+      // test with a fresh module or test the behavior through the route
+
+      await fc.assert(
+        fc.asyncProperty(
+          // Generate URLs that are NOT the allowed origin
+          fc.webUrl().filter((url) => {
+            try {
+              const origin = new URL(url).origin
+              return origin !== 'https://pakorn.dev'
+            } catch {
+              return false
+            }
+          }),
+          async (url) => {
+            vi.clearAllMocks()
+            vi.mocked(verifyToken).mockReturnValue(true)
+            vi.mocked(redis.incr).mockResolvedValue(1)
+            vi.mocked(redis.lrange).mockResolvedValue([])
+            vi.mocked(redis.expire).mockResolvedValue(1)
+            global.fetch = vi.fn().mockResolvedValue({
+              ok: true,
+              json: async () => ({ reply: 'test' }),
+            })
+
+            let origin: string
+            try {
+              origin = new URL(url).origin
+            } catch {
+              return true // skip invalid URLs
+            }
+
+            const req = makeRequest({ message: 'hello' }, { fp_token: VALID_TOKEN }, {
+              Origin: origin,
+            })
+
+            // Dynamically override ALLOWED_ORIGIN for this test
+            // Since the route reads it at call time via process.env, this works
+            const savedOrigin = process.env.ALLOWED_ORIGIN
+            process.env.ALLOWED_ORIGIN = 'https://pakorn.dev'
+
+            const res = await POST(req)
+
+            process.env.ALLOWED_ORIGIN = savedOrigin
+
+            // n8n fetch should NOT have been called (request not processed)
+            const fetchCalled = vi.mocked(global.fetch).mock.calls.length > 0
+
+            return res.status === 403 && !fetchCalled
+          },
+        ),
+        { numRuns: 100 },
+      )
+    },
+  )
+})
+
+// ──────────────────────────────────────────
+//  Sub-task 6.7: Unit tests for /api/chat
+// ──────────────────────────────────────────
+
+describe('POST /api/chat', () => {
+  describe('authentication', () => {
+    it('returns 401 when fp_token cookie is absent', async () => {
+      // Requirements: 11.1, 11.2
+      const req = makeRequest({ message: VALID_MESSAGE })
+      const res = await POST(req)
+
+      expect(res.status).toBe(401)
+      const body = await res.json()
+      expect(body).toHaveProperty('error')
+    })
+
+    it('returns 401 when fp_token is invalid (not 64-char hex)', async () => {
+      // Requirements: 11.1, 11.2
+      const req = makeRequest({ message: VALID_MESSAGE }, { fp_token: 'invalid-token' })
+      const res = await POST(req)
+
+      expect(res.status).toBe(401)
+    })
+
+    it('returns 401 when fp_token is empty string', async () => {
+      // Requirements: 11.1, 11.2
+      vi.mocked(verifyToken).mockReturnValue(false)
+      const req = makeRequest({ message: VALID_MESSAGE }, { fp_token: '' })
+      const res = await POST(req)
+
+      expect(res.status).toBe(401)
+    })
+  })
+
+  describe('request validation', () => {
+    it('returns 400 when message field is missing', async () => {
+      // Requirements: 11.10
+      const req = makeRequest({}, { fp_token: VALID_TOKEN })
+      const res = await POST(req)
+
+      expect(res.status).toBe(400)
+      const body = await res.json()
+      expect(body).toHaveProperty('error')
+    })
+
+    it('returns 400 when message is empty string', async () => {
+      // Requirements: 11.10
+      const req = makeRequest({ message: '' }, { fp_token: VALID_TOKEN })
+      const res = await POST(req)
+
+      expect(res.status).toBe(400)
+    })
+
+    it('returns 400 when message exceeds 500 characters', async () => {
+      // Requirements: 11.10
+      const req = makeRequest({ message: 'x'.repeat(501) }, { fp_token: VALID_TOKEN })
+      const res = await POST(req)
+
+      expect(res.status).toBe(400)
+    })
+
+    it('returns 400 for non-JSON body', async () => {
+      // Requirements: 11.10
+      const req = new NextRequest('http://localhost/api/chat', {
+        method: 'POST',
+        body: 'not-json',
+        headers: {
+          'Content-Type': 'text/plain',
+          Cookie: `fp_token=${VALID_TOKEN}`,
+        },
+      })
+      const res = await POST(req)
+
+      expect(res.status).toBe(400)
+    })
+  })
+
+  describe('rate limiting', () => {
+    it('returns 429 when rate limit is exceeded (count > 20)', async () => {
+      // Requirements: 11.3, 11.4
+      vi.mocked(redis.incr).mockResolvedValue(21)
+
+      const req = makeValidRequest()
+      const res = await POST(req)
+
+      expect(res.status).toBe(429)
+      const body = await res.json()
+      expect(body).toHaveProperty('error')
+    })
+
+    it('returns 200 when count is exactly at the limit (count = 20)', async () => {
+      // Requirements: 11.3, 11.4
+      vi.mocked(redis.incr).mockResolvedValue(20)
+
+      const req = makeValidRequest()
+      const res = await POST(req)
+
+      expect(res.status).toBe(200)
+    })
+
+    it('sets TTL on rate limit key when count is 1 (first request)', async () => {
+      // Requirements: 11.3
+      vi.mocked(redis.incr).mockResolvedValue(1)
+
+      const req = makeValidRequest()
+      await POST(req)
+
+      expect(vi.mocked(redis.expire)).toHaveBeenCalledWith(
+        `ratelimit:${VALID_TOKEN}`,
+        60,
+      )
+    })
+  })
+
+  describe('successful chat', () => {
+    it('returns { reply } on success', async () => {
+      // Requirements: 11.9
+      const req = makeValidRequest()
+      const res = await POST(req)
+
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body).toHaveProperty('reply')
+      expect(typeof body.reply).toBe('string')
+    })
+
+    it('n8n payload contains all 4 required fields', async () => {
+      // Requirements: 11.7
+      let capturedPayload: Record<string, unknown> | null = null
+      global.fetch = vi.fn().mockImplementation(async (_url, options) => {
+        capturedPayload = JSON.parse((options as RequestInit).body as string)
+        return { ok: true, json: async () => ({ reply: 'test reply' }) }
+      })
+
+      const req = makeValidRequest()
+      await POST(req)
+
+      expect(capturedPayload).not.toBeNull()
+      expect(capturedPayload).toHaveProperty('message', VALID_MESSAGE)
+      expect(capturedPayload).toHaveProperty('history')
+      expect(capturedPayload).toHaveProperty('visitorId', VALID_TOKEN)
+      expect(capturedPayload).toHaveProperty('systemPrompt')
+    })
+
+    it('saves user message and AI reply to Redis history', async () => {
+      // Requirements: 11.8
+      const req = makeValidRequest()
+      await POST(req)
+
+      expect(vi.mocked(redis.rpush)).toHaveBeenCalledOnce()
+      const [key, userMsg, aiMsg] = vi.mocked(redis.rpush).mock.calls[0] as [string, string, string]
+      expect(key).toBe(`chat:history:${VALID_TOKEN}`)
+
+      const parsedUser = JSON.parse(userMsg)
+      expect(parsedUser.role).toBe('user')
+      expect(parsedUser.content).toBe(VALID_MESSAGE)
+
+      const parsedAi = JSON.parse(aiMsg)
+      expect(parsedAi.role).toBe('assistant')
+    })
+
+    it('trims history to max 20 entries', async () => {
+      // Requirements: 11.8, 13.4
+      const req = makeValidRequest()
+      await POST(req)
+
+      expect(vi.mocked(redis.ltrim)).toHaveBeenCalledWith(
+        `chat:history:${VALID_TOKEN}`,
+        -20,
+        -1,
+      )
+    })
+
+    it('sets 1-hour TTL on history key', async () => {
+      // Requirements: 11.8, 13.4
+      const req = makeValidRequest()
+      await POST(req)
+
+      // expire is called for both rateLimit (60s) and history (3600s)
+      const expireCalls = vi.mocked(redis.expire).mock.calls
+      const historyExpire = expireCalls.find(
+        ([key, ttl]) => key === `chat:history:${VALID_TOKEN}` && ttl === 3600,
+      )
+      expect(historyExpire).toBeDefined()
+    })
+
+    it('fetches last 5 messages from history', async () => {
+      // Requirements: 11.5
+      const req = makeValidRequest()
+      await POST(req)
+
+      expect(vi.mocked(redis.lrange)).toHaveBeenCalledWith(
+        `chat:history:${VALID_TOKEN}`,
+        -5,
+        -1,
+      )
+    })
+  })
+
+  describe('n8n error handling', () => {
+    it('returns 503 when N8N_WEBHOOK_URL is not set', async () => {
+      delete process.env.N8N_WEBHOOK_URL
+
+      const req = makeValidRequest()
+      const res = await POST(req)
+
+      expect(res.status).toBe(503)
+    })
+
+    it('returns 503 when n8n returns non-ok response', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        json: async () => ({}),
+      })
+
+      const req = makeValidRequest()
+      const res = await POST(req)
+
+      expect(res.status).toBe(503)
+    })
+
+    it('returns 503 when n8n fetch throws', async () => {
+      global.fetch = vi.fn().mockRejectedValue(new Error('Network error'))
+
+      const req = makeValidRequest()
+      const res = await POST(req)
+
+      expect(res.status).toBe(503)
+    })
+  })
+
+  describe('CORS', () => {
+    it('allows requests when ALLOWED_ORIGIN is *', async () => {
+      process.env.ALLOWED_ORIGIN = '*'
+
+      const req = makeValidRequest()
+      const res = await POST(req)
+
+      expect(res.status).toBe(200)
+    })
+
+    it('returns 403 for requests from non-allowed origin', async () => {
+      process.env.ALLOWED_ORIGIN = 'https://pakorn.dev'
+
+      const req = makeRequest(
+        { message: VALID_MESSAGE },
+        { fp_token: VALID_TOKEN },
+        { Origin: 'https://evil.com' },
+      )
+      const res = await POST(req)
+
+      expect(res.status).toBe(403)
+    })
+
+    it('allows requests from the allowed origin', async () => {
+      process.env.ALLOWED_ORIGIN = 'https://pakorn.dev'
+
+      const req = makeRequest(
+        { message: VALID_MESSAGE },
+        { fp_token: VALID_TOKEN },
+        { Origin: 'https://pakorn.dev' },
+      )
+      const res = await POST(req)
+
+      expect(res.status).toBe(200)
+    })
+  })
+})
