@@ -1,49 +1,189 @@
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+@import "tailwindcss";
 
 html {
-  height: 100%;
+  font-size: 120%;
 }
 
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
+@theme {
+  --color-accent: #4FC3F7;
+  --color-bg: #0a0a0a;
+  --color-bg-light: #ffffff;
+  --color-surface: #111111;
+  --color-surface-light: #f5f5f5;
+  --color-border: #1f1f1f;
+  --color-border-light: #e0e0e0;
+  --color-text: #e5e5e5;
+  --color-text-dark: #111111;
+  --color-muted: #6b7280;
+  --color-muted-light: #9ca3af;
+  --font-family-sans: 'Inter', sans-serif;
 }
 
-body {
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
+/* Chat floating button entrance animation */
+@keyframes chat-btn-pop {
+  0% {
+    transform: scale(0) rotate(-180deg);
+    opacity: 0;
   }
+  60% {
+    transform: scale(1.2) rotate(0deg);
+    opacity: 1;
+  }
+  80% {
+    transform: scale(0.9) rotate(0deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes chat-btn-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(255, 255, 255, 0);
+  }
+}
+
+@keyframes chat-panel-slide {
+  0% {
+    transform: translateY(20px) scale(0.95);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-chat-btn-pop {
+  animation: chat-btn-pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.animate-chat-btn-pulse {
+  animation: chat-btn-pulse 2s ease-in-out infinite;
+  animation-delay: 0.5s;
+}
+
+.animate-chat-panel-slide {
+  animation: chat-panel-slide 0.3s ease-out forwards;
+}
+
+/* Two-tone slide themes */
+.slide-dark {
+  background-color: #0a0a0a !important;
+  color: #e5e5e5;
+}
+
+.slide-light {
+  background-color: #ffffff !important;
+  color: #111111;
+}
+
+.slide-light .text-text { color: #111111 !important; }
+.slide-light .text-muted { color: #6b7280 !important; }
+.slide-light .text-accent { color: #0ea5e9 !important; }
+.slide-light .bg-surface { background-color: #f5f5f5 !important; }
+.slide-light .border-border { border-color: #e0e0e0 !important; }
+.slide-light .bg-border { background-color: #e0e0e0 !important; }
+.slide-light .bg-accent\/10 { background-color: rgba(14, 165, 233, 0.1) !important; }
+.slide-light .text-red-400 { color: #f87171 !important; }
+.slide-light .bg-bg { background-color: #ffffff !important; }
+
+/* Slide text entrance animations */
+@keyframes slide-fade-up {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-fade-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slide-stagger-in {
+  0% {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-blur-in {
+  0% {
+    opacity: 0;
+    filter: blur(8px);
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+/* Animation classes — applied when slide is active */
+.slide-active .animate-on-slide {
+  animation: slide-fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.slide-active .animate-on-slide-delay-1 {
+  opacity: 0;
+  animation: slide-fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards;
+}
+
+.slide-active .animate-on-slide-delay-2 {
+  opacity: 0;
+  animation: slide-fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
+}
+
+.slide-active .animate-on-slide-delay-3 {
+  opacity: 0;
+  animation: slide-fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
+}
+
+.slide-active .animate-on-slide-delay-4 {
+  opacity: 0;
+  animation: slide-fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards;
+}
+
+.slide-active .animate-scale-in {
+  animation: slide-fade-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.slide-active .animate-stagger-in {
+  animation: slide-stagger-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.slide-active .animate-blur-in {
+  animation: slide-blur-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* When slide is NOT active, hide animated elements */
+.slide-inactive .animate-on-slide,
+.slide-inactive .animate-on-slide-delay-1,
+.slide-inactive .animate-on-slide-delay-2,
+.slide-inactive .animate-on-slide-delay-3,
+.slide-inactive .animate-on-slide-delay-4,
+.slide-inactive .animate-scale-in,
+.slide-inactive .animate-stagger-in,
+.slide-inactive .animate-blur-in {
+  opacity: 0;
 }
