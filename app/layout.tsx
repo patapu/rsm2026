@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { Providers } from "./providers";
+import SidebarLayout from "@/components/layout/SidebarLayout";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -19,9 +21,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="th" className={inter.variable}>
-      <body className="bg-bg text-text font-sans antialiased">
-        {children}
+    <html lang="th" className={inter.variable} suppressHydrationWarning>
+      <body className="bg-background text-foreground font-sans antialiased">
+        <Providers>
+          <SidebarLayout>
+            {children}
+          </SidebarLayout>
+        </Providers>
       </body>
     </html>
   );

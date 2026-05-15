@@ -33,8 +33,11 @@ export const keys = {
   /** User memory (interests, askedTopics): `memory:{visitorId}` — TTL 7 days */
   memory: (visitorId: string) => `memory:${visitorId}`,
 
-  /** Chat history list: `chat:history:{visitorId}` — TTL 1h, max 20 items */
-  history: (visitorId: string) => `chat:history:${visitorId}`,
+  /** Chat history list: `chat:history:{visitorId}:{chatSessionId}` — TTL 24h, max 20 items */
+  history: (visitorId: string, chatSessionId?: string) =>
+    chatSessionId && chatSessionId !== 'default'
+      ? `chat:history:${visitorId}:${chatSessionId}`
+      : `chat:history:${visitorId}`,
 
   /** Rate limit counter: `ratelimit:{visitorId}` — TTL 1 min */
   rateLimit: (visitorId: string) => `ratelimit:${visitorId}`,

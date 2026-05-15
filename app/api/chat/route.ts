@@ -177,6 +177,9 @@ export async function POST(req: NextRequest) {
     await redis.set(sessionKey, sessionId, 'EX', 86400) // 24h TTL
   }
 
+  // 4b. Chat session ID — per browser tab/window (separates incognito from normal)
+  const chatSessionId = req.headers.get('x-chat-session') ?? 'default'
+
   // 5. Get userMemory from Redis
   const memoryKey = keys.memory(visitorId)
   const rawMemory = await redis.get(memoryKey)
@@ -211,7 +214,7 @@ export async function POST(req: NextRequest) {
         'Authorization': process.env.N8N_WEBHOOK_AUTH ?? '',
       },
       body: JSON.stringify({
-        sessionId,
+        sessionId: `${sessionId}:${chatSessionId}`,
         chatInput: {
           userId: visitorId,
           message,
@@ -291,7 +294,7 @@ export async function POST(req: NextRequest) {
   }
 
   // 8. Save to history (max 20, TTL 24h — matches session TTL)
-  const historyKey = keys.history(visitorId)
+  const historyKey = keys.history(visitorId, chatSessionId)
   const userMsg = JSON.stringify({ role: 'user', content: message, timestamp: Date.now() })
   const aiMsg = JSON.stringify({ role: 'assistant', content: reply, timestamp: Date.now() })
 
@@ -322,8 +325,11 @@ export async function GET(req: NextRequest) {
   }
   const visitorId = token
 
+  // Chat session ID — per browser tab/window
+  const chatSessionId = req.headers.get('x-chat-session') ?? 'default'
+
   // Fetch history from Redis
-  const historyKey = keys.history(visitorId)
+  const historyKey = keys.history(visitorId, chatSessionId)
   const rawMessages = await redis.lrange(historyKey, 0, -1)
 
   const messages = rawMessages.map((raw) => {
@@ -350,7 +356,7 @@ export async function OPTIONS(req: NextRequest) {
     headers: {
       ...cors,
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
+      'Access-Control-Allow-Headers': 'Content-Type, x-chat-session',
     },
   })
 }

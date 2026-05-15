@@ -1,96 +1,92 @@
-import Image from "next/image";
+"use client";
+
+import { Avatar, Button, Card, CardContent, Chip, Link, Separator } from "@heroui/react";
+import { motion } from "framer-motion";
 import { ME } from "@/lib/me";
 
 export default function Hero() {
   const { profile, contact, cta } = ME;
 
   return (
-    <section
+    <motion.section
       id="hero"
-      className="flex flex-col items-center justify-center min-h-screen px-4 sm:px-6 lg:px-8 py-12 sm:py-20 text-center"
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-100px" }}
+      transition={{ duration: 0.4 }}
     >
-      <div className="mb-8 animate-scale-in">
-        <Image
-          src="/profile.png"
-          alt={`${profile.firstNameTH} ${profile.lastNameTH}`}
-          width={300}
-          height={300}
-          className="rounded-full border-2 border-accent mx-auto"
-          priority
-        />
-      </div>
+      <Card className="bg-default-100">
+        <CardContent className="flex flex-col items-center px-4 sm:px-6 lg:px-8 py-12 sm:py-20 text-center">
+          <Avatar className="w-40 h-40 mb-8 border-3 border-primary">
+            <Avatar.Image
+              src="/profile.png"
+              alt={`${profile.firstNameTH} ${profile.lastNameTH}`}
+            />
+            <Avatar.Fallback>{profile.nicknameTH}</Avatar.Fallback>
+          </Avatar>
 
-      <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-text mb-2 animate-on-slide-delay-1">
-        {profile.firstNameTH} {profile.lastNameTH}
-        <span className="text-muted text-xl sm:text-2xl ml-2 sm:ml-3">({profile.nicknameTH})</span>
-      </h1>
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-2">
+            {profile.firstNameTH} {profile.lastNameTH}
+            {profile.nicknameTH && (
+              <span className="text-foreground-500 text-xl sm:text-2xl ml-2 sm:ml-3">
+                ({profile.nicknameTH})
+              </span>
+            )}
+          </h1>
 
-      <p className="text-lg sm:text-xl text-accent font-medium mb-4 animate-on-slide-delay-2">{profile.title}</p>
+          <Chip variant="primary" size="lg" className="mb-4">
+            {profile.title}
+          </Chip>
 
-      <p className="text-base sm:text-lg text-muted italic mb-8 animate-on-slide-delay-3">{profile.tagline}</p>
+          <p className="text-base sm:text-lg text-foreground-500 italic mb-8">{profile.tagline}</p>
 
-      {/* PDF Download Button for HR */}
-      {cta.resumePdfUrl && (
-        <div className="mb-8 animate-on-slide-delay-3">
-          <a
-            href={cta.resumePdfUrl}
-            download
-            className="inline-flex items-center gap-2 px-6 py-3 bg-accent text-bg font-semibold rounded-lg hover:bg-accent/90 transition-all duration-200 hover:scale-105 shadow-lg shadow-accent/20"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-            ดาวน์โหลด Resume (PDF)
-          </a>
-        </div>
-      )}
+          {/* PDF Download Button */}
+          {cta.resumePdfUrl && (
+            <div className="mb-8">
+              <a href={cta.resumePdfUrl} download>
+                <Button variant="primary" size="lg">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  Download Resume (PDF)
+                </Button>
+              </a>
+            </div>
+          )}
 
-      <div className="flex flex-wrap gap-4 justify-center animate-on-slide-delay-4">
-        <a
-          href={`mailto:${contact.email}`}
-          className="text-accent hover:underline"
-        >
-          {contact.email}
-        </a>
-        <a
-          href={`tel:${contact.phone}`}
-          className="text-accent hover:underline"
-        >
-          {contact.phone}
-        </a>
-        {contact.linkedin && contact.linkedin !== "coming soon" && (
-          <a
-            href={contact.linkedin}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-accent hover:underline"
-          >
-            LinkedIn
-          </a>
-        )}
-        {contact.website && contact.website !== "coming soon" && (
-          <a
-            href={contact.website}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-accent hover:underline"
-          >
-            Website
-          </a>
-        )}
-      </div>
-    </section>
+          <div className="flex flex-wrap gap-4 justify-center">
+            <Link href={`mailto:${contact.email}`} className="text-primary">
+              {contact.email}
+            </Link>
+            <Link href={`tel:${contact.phone}`} className="text-primary">
+              {contact.phone}
+            </Link>
+            {contact.linkedin && (
+              <Link href={contact.linkedin} target="_blank" rel="noopener noreferrer" className="text-primary">
+                LinkedIn
+              </Link>
+            )}
+            {contact.website && (
+              <Link href={contact.website} target="_blank" rel="noopener noreferrer" className="text-primary">
+                Website
+              </Link>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+      <Separator className="my-6" />
+    </motion.section>
   );
 }

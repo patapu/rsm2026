@@ -36,7 +36,10 @@ vi.mock('@/lib/redis', () => ({
   keys: {
     session: (id: string) => `session:${id}`,
     memory: (id: string) => `memory:${id}`,
-    history: (id: string) => `chat:history:${id}`,
+    history: (id: string, chatSessionId?: string) =>
+      chatSessionId && chatSessionId !== 'default'
+        ? `chat:history:${id}:${chatSessionId}`
+        : `chat:history:${id}`,
     rateLimit: (id: string) => `ratelimit:${id}`,
     blocked: (ip: string) => `blocked:${ip}`,
   },

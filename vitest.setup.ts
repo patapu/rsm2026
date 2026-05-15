@@ -6,3 +6,17 @@
 
 process.env.FINGERPRINT_SECRET = 'test-secret-for-fingerprint-testing-purposes-ok-64'
 process.env.REDIS_URL = 'redis://localhost:6379'
+
+// Mock IntersectionObserver for framer-motion whileInView in jsdom
+if (typeof globalThis.IntersectionObserver === 'undefined') {
+  globalThis.IntersectionObserver = class IntersectionObserver {
+    readonly root: Element | null = null;
+    readonly rootMargin: string = '';
+    readonly thresholds: ReadonlyArray<number> = [];
+    constructor(_callback: IntersectionObserverCallback, _options?: IntersectionObserverInit) {}
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+    takeRecords(): IntersectionObserverEntry[] { return []; }
+  } as unknown as typeof globalThis.IntersectionObserver;
+}

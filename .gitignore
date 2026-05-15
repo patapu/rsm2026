@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# editor / tool data
+/.claude
+/.kiro
+
+# n8n local stack (contains secrets)
+/n8n/stack.env

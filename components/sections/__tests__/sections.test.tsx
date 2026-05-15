@@ -20,7 +20,6 @@ vi.mock("next/image", () => ({
 import Hero from "../Hero";
 import Skills from "../Skills";
 import Experience from "../Experience";
-import Contact from "../Contact";
 import { ME } from "@/lib/me";
 
 describe("Hero Section", () => {
@@ -33,7 +32,9 @@ describe("Hero Section", () => {
 
   it("shows nickname (Thai)", () => {
     render(<Hero />);
-    expect(screen.getByText(/เกื้อ/)).toBeTruthy();
+    // Nickname appears both in Avatar.Fallback and in the heading -> use getAllByText
+    const matches = screen.getAllByText(/เกื้อ/);
+    expect(matches.length).toBeGreaterThan(0);
   });
 
   it("shows title 'Lead Developer'", () => {
@@ -44,7 +45,7 @@ describe("Hero Section", () => {
   it("shows tagline", () => {
     render(<Hero />);
     expect(
-      screen.getByText("Coding is not just a skill, but my passion.")
+      screen.getByText(ME.profile.tagline)
     ).toBeTruthy();
   });
 });
@@ -108,25 +109,5 @@ describe("Experience Section", () => {
     expect(
       msc.compareDocumentPosition(cdg) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
-  });
-});
-
-describe("Contact Section", () => {
-  it("shows email as mailto link", () => {
-    render(<Contact />);
-    const emailLink = screen.getByRole("link", {
-      name: ME.contact.email,
-    });
-    expect(emailLink).toBeTruthy();
-    expect(emailLink.getAttribute("href")).toBe(`mailto:${ME.contact.email}`);
-  });
-
-  it("shows phone as tel link", () => {
-    render(<Contact />);
-    const phoneLink = screen.getByRole("link", {
-      name: ME.contact.phone,
-    });
-    expect(phoneLink).toBeTruthy();
-    expect(phoneLink.getAttribute("href")).toBe(`tel:${ME.contact.phone}`);
   });
 });

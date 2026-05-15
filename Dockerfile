@@ -33,9 +33,7 @@ RUN addgroup --system --gid 1001 nodejs && \
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
-
-# Create prompts directory (mounted at runtime via docker-compose volume)
-RUN mkdir -p /app/prompts
+COPY --from=builder /app/prompts ./prompts
 
 # Set correct permissions
 RUN chown -R nextjs:nodejs /app

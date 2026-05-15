@@ -1,51 +1,54 @@
+"use client";
+
+import { useMemo } from "react";
+import { Chip } from "@heroui/react";
 import { ME } from "@/lib/me";
+import SubCard from "@/components/ui/SubCard";
+import AnimatedSection from "@/components/ui/AnimatedSection";
 
 export default function Experience() {
   const { experience } = ME;
 
-  // Sort newest first (by startDate descending)
-  const sorted = [...experience].sort(
-    (a, b) => b.startDate.localeCompare(a.startDate)
+  // Sort newest first (by startDate descending). Memoized so we don't re-sort
+  // on every render — the underlying array is stable per render of ME.
+  const sorted = useMemo(
+    () => [...experience].sort((a, b) => b.startDate.localeCompare(a.startDate)),
+    [experience],
   );
 
   return (
-    <section id="experience" className="px-4 sm:px-6 lg:px-8 py-12 sm:py-16 max-w-4xl mx-auto">
-      <h2 className="text-2xl sm:text-3xl font-bold text-text mb-8 animate-on-slide">ประสบการณ์</h2>
-
-      <div className="space-y-12 animate-on-slide-delay-1">
+    <AnimatedSection id="experience" title="Experience">
+      <div className="space-y-12">
         {sorted.map((exp) => (
-          <div
-            key={exp.company}
-            className="bg-surface border border-border rounded-lg p-6"
-          >
+          <SubCard key={exp.company}>
             <div className="flex flex-wrap items-center gap-3 mb-4">
-              <h3 className="text-2xl font-bold text-text">{exp.company}</h3>
-              <span className="px-2 py-0.5 bg-accent/10 text-accent text-sm rounded">
+              <h3 className="text-2xl font-bold text-foreground">{exp.company}</h3>
+              <Chip variant="primary" size="sm">
                 {exp.workModel}
-              </span>
+              </Chip>
               {exp.teamSize && (
-                <span className="px-2 py-0.5 bg-accent/10 text-accent text-sm rounded">
+                <Chip variant="primary" size="sm">
                   👥 Team {exp.teamSize}
-                </span>
+                </Chip>
               )}
-              <span className="text-muted text-sm">
+              <span className="text-foreground-500 text-sm">
                 {exp.startDate} — {exp.endDate}
               </span>
             </div>
 
-            <p className="text-text mb-4">{exp.summary}</p>
+            <p className="text-foreground mb-4">{exp.summary}</p>
 
             {/* Career Growth */}
             {exp.roles.length > 1 && (
               <div className="mb-6">
-                <h4 className="text-sm font-semibold text-accent mb-2">
+                <h4 className="text-sm font-semibold text-primary mb-2">
                   Career Growth
                 </h4>
                 <div className="space-y-1">
                   {exp.roles.map((role, i) => (
                     <div key={i} className="flex items-center gap-2 text-sm">
-                      <span className="text-text font-medium">{role.title}</span>
-                      <span className="text-muted">
+                      <span className="text-foreground font-medium">{role.title}</span>
+                      <span className="text-foreground-500">
                         ({role.startDate} — {role.endDate})
                       </span>
                     </div>
@@ -56,13 +59,13 @@ export default function Experience() {
 
             {/* Responsibilities */}
             <div className="mb-6">
-              <h4 className="text-sm font-semibold text-accent mb-2">
+              <h4 className="text-sm font-semibold text-primary mb-2">
                 Responsibilities
               </h4>
               <ul className="space-y-1">
                 {exp.responsibilities.map((item, i) => (
-                  <li key={i} className="text-sm text-text flex items-start gap-2">
-                    <span className="text-accent mt-0.5">•</span>
+                  <li key={i} className="text-sm text-foreground flex items-start gap-2">
+                    <span className="text-primary mt-0.5">•</span>
                     {item}
                   </li>
                 ))}
@@ -71,13 +74,13 @@ export default function Experience() {
 
             {/* Achievements */}
             <div className="mb-6">
-              <h4 className="text-sm font-semibold text-accent mb-2">
+              <h4 className="text-sm font-semibold text-primary mb-2">
                 Achievements
               </h4>
               <ul className="space-y-1">
                 {exp.achievements.map((ach, i) => (
-                  <li key={i} className="text-sm text-text flex items-start gap-2">
-                    <span className="text-accent mt-0.5">•</span>
+                  <li key={i} className="text-sm text-foreground flex items-start gap-2">
+                    <span className="text-primary mt-0.5">•</span>
                     <span>
                       {ach.metric}: <strong>{ach.value}</strong> — {ach.context}
                     </span>
@@ -89,17 +92,14 @@ export default function Experience() {
             {/* Clients */}
             {exp.clients.length > 0 && (
               <div className="mb-6">
-                <h4 className="text-sm font-semibold text-accent mb-2">
+                <h4 className="text-sm font-semibold text-primary mb-2">
                   Clients
                 </h4>
                 <div className="flex flex-wrap gap-2">
                   {exp.clients.map((client) => (
-                    <span
-                      key={client}
-                      className="px-2 py-0.5 bg-accent/10 text-accent text-xs rounded"
-                    >
+                    <Chip key={client} variant="primary" size="sm">
                       {client}
-                    </span>
+                    </Chip>
                   ))}
                 </div>
               </div>
@@ -107,23 +107,20 @@ export default function Experience() {
 
             {/* Tech Stack */}
             <div>
-              <h4 className="text-sm font-semibold text-accent mb-2">
+              <h4 className="text-sm font-semibold text-primary mb-2">
                 Tech Stack
               </h4>
               <div className="flex flex-wrap gap-2">
                 {exp.techStack.map((tech) => (
-                  <span
-                    key={tech}
-                    className="px-2 py-0.5 bg-surface border border-border text-text text-xs rounded"
-                  >
+                  <Chip key={tech} variant="soft" size="sm">
                     {tech}
-                  </span>
+                  </Chip>
                 ))}
               </div>
             </div>
-          </div>
+          </SubCard>
         ))}
       </div>
-    </section>
+    </AnimatedSection>
   );
 }

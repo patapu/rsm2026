@@ -17,7 +17,7 @@ services:
       - RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS:-60000}
       - ALLOWED_ORIGIN=${ALLOWED_ORIGIN:-http://localhost:3000}
     volumes:
-      - ../prompts:/app/prompts:ro
+      - ./prompts:/app/prompts:ro
     depends_on:
       redis:
         condition: service_healthy
