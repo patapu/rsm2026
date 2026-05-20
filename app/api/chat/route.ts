@@ -137,6 +137,12 @@ export async function POST(req: NextRequest) {
   }
   const visitorId = token
 
+  // 1b. Confirm an active session exists in Redis for this visitor
+  const sessionExists = await redis.exists(keys.session(visitorId))
+  if (!sessionExists) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: cors })
+  }
+
   // 2. Validate request body
   let body: unknown
   try {
@@ -159,8 +165,8 @@ export async function POST(req: NextRequest) {
 
   const { message } = parsed.data
 
-  // 3. Rate limit check
-  const rateLimitKey = keys.rateLimit(visitorId)
+  // 3. Rate limit check (keyed by IP + visitorId to resist cookie-swap evasion)
+  const rateLimitKey = keys.rateLimit(visitorId, ip)
   const count = await redis.incr(rateLimitKey)
   if (count === 1) {
     await redis.expire(rateLimitKey, 60) // 1 minute TTL
@@ -211,7 +217,9 @@ export async function POST(req: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': process.env.N8N_WEBHOOK_AUTH ?? '',
+        ...(process.env.N8N_WEBHOOK_AUTH_NAME && process.env.N8N_WEBHOOK_AUTH
+          ? { [process.env.N8N_WEBHOOK_AUTH_NAME]: process.env.N8N_WEBHOOK_AUTH }
+          : {}),
       },
       body: JSON.stringify({
         sessionId: `${sessionId}:${chatSessionId}`,
@@ -235,7 +243,13 @@ export async function POST(req: NextRequest) {
       }),
     })
     console.log({
-      n8nRes
+      n8nRes,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(process.env.N8N_WEBHOOK_AUTH_NAME && process.env.N8N_WEBHOOK_AUTH
+          ? { [process.env.N8N_WEBHOOK_AUTH_NAME]: process.env.N8N_WEBHOOK_AUTH }
+          : {}),
+      },
     })
     if (!n8nRes.ok) {
       throw new Error(`n8n returned ${n8nRes.status}`)
@@ -324,6 +338,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: cors })
   }
   const visitorId = token
+
+  // Confirm an active session exists in Redis for this visitor
+  const sessionExists = await redis.exists(keys.session(visitorId))
+  if (!sessionExists) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers: cors })
+  }
 
   // Chat session ID — per browser tab/window
   const chatSessionId = req.headers.get('x-chat-session') ?? 'default'

@@ -2,7 +2,7 @@
 
 import { Input, Button } from '@heroui/react'
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import ChatMessage, { type ChatMessageData } from './ChatMessage'
 
 /**
@@ -70,6 +70,9 @@ export default function ChatInterface() {
   const [isLoading, setIsLoading] = useState(false)
   const [isHistoryLoaded, setIsHistoryLoaded] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Indices of assistant messages that have already finished typewriter reveal
+  // (or were loaded from history and should render instantly).
+  const [typedIndices, setTypedIndices] = useState<Set<number>>(new Set())
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   // Mirror isLoading into a ref so `sendMessage` can check it without needing
@@ -101,6 +104,8 @@ export default function ChatInterface() {
           const data = await response.json()
           if (Array.isArray(data.messages)) {
             setMessages(data.messages)
+            // History messages render instantly — no typewriter for past replies.
+            setTypedIndices(new Set(data.messages.map((_: unknown, i: number) => i)))
           }
         }
       } catch {
@@ -123,7 +128,12 @@ export default function ChatInterface() {
       content: messageText.trim(),
     }
 
-    setMessages((prev) => [...prev, userMessage])
+    setMessages((prev) => {
+      // User messages are not typewritten, but mark their index as "typed" so
+      // the index-tracking stays aligned with the messages array.
+      setTypedIndices((ti) => new Set(ti).add(prev.length))
+      return [...prev, userMessage]
+    })
     setInput('')
     setError(null)
     setIsLoading(true)
@@ -170,7 +180,7 @@ export default function ChatInterface() {
         <div className="max-w-3xl mx-auto px-4 py-6">
           {showEmptyState && (
             <div className="flex flex-col items-center justify-center h-full min-h-[60vh] text-center">
-              <div className="w-16 h-16 rounded-full bg-default-100 flex items-center justify-center mb-4">
+              <div className="w-16 h-16 rounded-full bg-[rgba(0,255,255,0.1)] border border-[rgba(0,255,255,0.3)] neon-border-cyan flex items-center justify-center mb-4">
                 <svg
                   width="32"
                   height="32"
@@ -180,34 +190,61 @@ export default function ChatInterface() {
                   strokeWidth="1.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="text-primary"
+                  className="text-[#00FFFF]"
                 >
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                 </svg>
               </div>
-              <p className="text-foreground-500 text-sm max-w-xs">
+              <p className="font-mono uppercase tracking-wider neon-text-cyan text-sm max-w-xs">
                 สวัสดีครับ! ถามอะไรเกี่ยวกับประสบการณ์หรือทักษะของผมได้เลย
               </p>
             </div>
           )}
 
-          {messages.map((msg, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2, ease: 'easeOut' }}
-            >
-              <ChatMessage message={msg} />
-            </motion.div>
-          ))}
+          <AnimatePresence initial={false}>
+            {messages.map((msg, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+              >
+                <ChatMessage
+                  message={msg}
+                  isStreaming={msg.role === 'assistant' && !typedIndices.has(i)}
+                  onDoneStreaming={() =>
+                    setTypedIndices((prev) => {
+                      if (prev.has(i)) return prev
+                      return new Set(prev).add(i)
+                    })
+                  }
+                />
+              </motion.div>
+            ))}
+          </AnimatePresence>
 
           {isLoading && (
             <div className="flex justify-start mb-3">
-              <div className="bg-default-100 rounded-lg px-3 py-2">
-                <span className="text-sm text-foreground-500 animate-pulse">
-                  กำลังพิมพ์...
-                </span>
+              <div
+                className="bg-[rgba(255,0,255,0.1)] border border-[rgba(255,0,255,0.3)] rounded-lg px-3 py-2"
+                aria-label="กำลังพิมพ์"
+                role="status"
+              >
+                <div className="flex items-center gap-1.5">
+                  {[0, 1, 2].map((d) => (
+                    <motion.span
+                      key={d}
+                      className="inline-block w-1.5 h-1.5 rounded-full bg-[#FF00FF] shadow-[0_0_6px_rgba(255,0,255,0.8)]"
+                      animate={{ y: [0, -4, 0], opacity: [0.4, 1, 0.4] }}
+                      transition={{
+                        duration: 0.9,
+                        repeat: Infinity,
+                        delay: d * 0.15,
+                        ease: 'easeInOut',
+                      }}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
           )}
@@ -223,7 +260,7 @@ export default function ChatInterface() {
       </div>
 
       {/* Input area — sticky bottom */}
-      <div className="sticky bottom-0 border-t border-divider bg-background/80 backdrop-blur-md">
+      <div className="sticky bottom-0 bg-[rgba(5,5,10,0.85)] backdrop-blur-md border-t border-[rgba(0,255,255,0.2)]">
         <div className="max-w-3xl mx-auto px-4 py-3 flex gap-2">
           <Input
             ref={inputRef}
@@ -233,7 +270,7 @@ export default function ChatInterface() {
             onKeyDown={handleKeyDown}
             placeholder="พิมพ์ข้อความ..."
             disabled={isLoading}
-            className="flex-1 border border-secondary/30 focus:border-primary/50"
+            className="flex-1 border border-[rgba(255,0,255,0.3)] focus:border-[#00FFFF] focus:shadow-[0_0_10px_rgba(0,255,255,0.3)]"
             variant="secondary"
             fullWidth
             data-testid="chat-input"

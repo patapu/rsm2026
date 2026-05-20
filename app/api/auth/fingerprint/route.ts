@@ -42,6 +42,18 @@ export async function POST(req: NextRequest) {
     return new NextResponse(null, { status: 200 })
   }
 
+  // 1b. IP-keyed mint rate limit — placed AFTER the existing-cookie shortcut so
+  //     returning visitors with a valid token do not consume mint budget; only
+  //     requests that will actually mint a NEW visitorId are counted.
+  const mintKey = keys.fpMint(ip)
+  const mintCount = await redis.incr(mintKey)
+  if (mintCount === 1) {
+    await redis.expire(mintKey, 3600) // 1-hour window
+  }
+  if (mintCount > parseInt(process.env.FP_MINT_LIMIT ?? '10', 10)) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+  }
+
   // 2. Validate request body
   let body: unknown
   try {

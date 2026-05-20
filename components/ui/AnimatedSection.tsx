@@ -1,6 +1,5 @@
 "use client"
 
-import { Separator } from "@heroui/react"
 import { motion } from "framer-motion"
 import SectionCard from "./SectionCard"
 
@@ -35,12 +34,15 @@ export default function AnimatedSection({
       transition={{ duration: 0.4 }}
     >
       <SectionCard>
-        <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-8">
+        <h2 className="text-xl sm:text-2xl font-mono font-bold uppercase tracking-[0.2em] neon-text-cyan mb-8 pb-3 border-b border-[rgba(0,255,255,0.2)]">
+          <span className="text-[#FF00FF] mr-2">{"//"}</span>
           {title}
         </h2>
         {children}
       </SectionCard>
-      {withSeparator && <Separator className="my-6" />}
+      {withSeparator && (
+        <div className="my-8 h-px bg-gradient-to-r from-transparent via-[rgba(0,255,255,0.4)] to-transparent" />
+      )}
     </motion.section>
   )
 }

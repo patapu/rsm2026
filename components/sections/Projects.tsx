@@ -15,8 +15,8 @@ export default function Projects() {
           <SubCard key={project.name} className="flex flex-col">
             <div className="flex flex-col flex-1">
               <div className="mb-3">
-                <h3 className="text-lg font-bold text-foreground">{project.name}</h3>
-                <Chip variant="primary" size="sm" className="mt-1">
+                <h3 className="text-lg font-mono font-bold uppercase tracking-wider text-foreground">{project.name}</h3>
+                <Chip variant="primary" size="sm" className="mt-1 font-mono">
                   {project.category}
                 </Chip>
               </div>
@@ -34,7 +34,7 @@ export default function Projects() {
                       key={i}
                       className="text-xs text-foreground flex items-start gap-2"
                     >
-                      <span className="text-primary mt-0.5">•</span>
+                      <span className="text-[#00FFFF] font-mono mt-0.5">{">"}</span>
                       {h}
                     </li>
                   ))}
@@ -44,7 +44,7 @@ export default function Projects() {
               <div className="mt-auto">
                 <div className="flex flex-wrap gap-1 mb-3">
                   {project.techStack.map((tech) => (
-                    <Chip key={tech} variant="soft" size="sm">
+                    <Chip key={tech} variant="soft" size="sm" className="font-mono bg-[rgba(255,0,255,0.1)] border border-[rgba(255,0,255,0.3)] text-[#FF00FF]">
                       {tech}
                     </Chip>
                   ))}
@@ -56,7 +56,7 @@ export default function Projects() {
                       href={project.repoUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-primary text-xs"
+                      className="text-[#00FFFF] font-mono text-xs hover:neon-text-cyan transition-all"
                     >
                       Repository
                     </Link>
@@ -66,7 +66,7 @@ export default function Projects() {
                       href={project.liveUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-primary text-xs"
+                      className="text-[#00FFFF] font-mono text-xs hover:neon-text-cyan transition-all"
                     >
                       Live Demo
                     </Link>

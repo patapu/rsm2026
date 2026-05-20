@@ -39,8 +39,12 @@ export const keys = {
       ? `chat:history:${visitorId}:${chatSessionId}`
       : `chat:history:${visitorId}`,
 
-  /** Rate limit counter: `ratelimit:{visitorId}` — TTL 1 min */
-  rateLimit: (visitorId: string) => `ratelimit:${visitorId}`,
+  /** Rate limit counter: `ratelimit:{ip}:{visitorId}` (or `ratelimit:{visitorId}` when ip omitted) — TTL 1 min */
+  rateLimit: (visitorId: string, ip?: string) =>
+    ip ? `ratelimit:${ip}:${visitorId}` : `ratelimit:${visitorId}`,
+
+  /** Fingerprint mint rate limit counter: `fp-mint:{ip}` — TTL 1h */
+  fpMint: (ip: string) => `fp-mint:${ip}`,
 
   /** IP blacklist flag: `blocked:{ip}` — TTL 1h */
   blocked: (ip: string) => `blocked:${ip}`,

@@ -1,17 +1,45 @@
 "use client"
 
-import { AnimatePresence, motion } from "framer-motion"
+import { AnimatePresence, motion, type Variants } from "framer-motion"
 import { usePathname } from "next/navigation"
+
+/**
+ * Cyberpunk glitch transition — filter pulse + slight horizontal shift only.
+ *
+ * Why no clip-path: clip-path that hides content (e.g. `inset(0 0 100% 0)`)
+ * creates a blank frame during `AnimatePresence mode="wait"` between exit-end
+ * and enter-start. On long pages the blank frame is masked by incoming
+ * content, but on short pages like /contact it's clearly visible as a flash
+ * that reads as "double redirect."
+ *
+ * This version keeps `opacity` high (≥ 0.55) and uses only filter + translate,
+ * so content stays visible throughout — no compositor-level "nothing on top
+ * of body" frame, no flicker.
+ */
+const glitchVariants: Variants = {
+  initial: {
+    opacity: 0.55,
+    filter: "brightness(1.6) saturate(2) hue-rotate(18deg)",
+    x: -6,
+  },
+  animate: {
+    opacity: 1,
+    filter: "brightness(1) saturate(1) hue-rotate(0deg)",
+    x: 0,
+    transition: { duration: 0.2, ease: "easeOut" },
+  },
+  exit: {
+    opacity: 0.55,
+    filter: "brightness(1.6) saturate(2) hue-rotate(-18deg)",
+    x: 6,
+    transition: { duration: 0.1, ease: "easeIn" },
+  },
+}
 
 interface PageTransitionProps {
   children: React.ReactNode
 }
 
-/**
- * Wraps page content with a fade/slide transition between route changes.
- * Uses `AnimatePresence mode="wait"` keyed on the current pathname so the
- * exit animation actually fires before the next page enters.
- */
 export default function PageTransition({ children }: PageTransitionProps) {
   const pathname = usePathname()
 
@@ -19,10 +47,11 @@ export default function PageTransition({ children }: PageTransitionProps) {
     <AnimatePresence mode="wait" initial={false}>
       <motion.div
         key={pathname}
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -8 }}
-        transition={{ duration: 0.2, ease: "easeInOut" }}
+        variants={glitchVariants}
+        initial="initial"
+        animate="animate"
+        exit="exit"
+        style={{ willChange: "filter, opacity, transform" }}
       >
         {children}
       </motion.div>

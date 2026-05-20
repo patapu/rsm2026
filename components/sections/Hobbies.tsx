@@ -8,7 +8,7 @@ function FrequencyStars({ frequency }: { frequency: number }) {
   return (
     <span className="text-sm" aria-label={`ความถี่ ${frequency} จาก 5`}>
       {Array.from({ length: 5 }, (_, i) => (
-        <span key={i} className={i < frequency ? "text-primary" : "text-foreground-500/30"}>
+        <span key={i} className={i < frequency ? "text-[#00FFFF] drop-shadow-[0_0_4px_rgba(0,255,255,0.7)]" : "text-foreground-500/30"}>
           ★
         </span>
       ))}

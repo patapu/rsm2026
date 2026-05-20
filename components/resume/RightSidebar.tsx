@@ -24,8 +24,8 @@ export default function RightSidebar() {
             onClick={() => scrollToSection(id)}
             className={`block w-full text-left text-sm py-1 px-2 transition-colors ${
               activeSection === id
-                ? "text-primary font-medium border-l-2 border-primary -ml-[1px]"
-                : "text-foreground-500 hover:text-foreground"
+                ? "text-[#00FFFF] font-mono font-medium border-l-2 border-[#00FFFF] neon-text-cyan -ml-[1px]"
+                : "text-foreground-500 font-mono hover:text-[#00FFFF] transition-colors"
             }`}
           >
             {label}

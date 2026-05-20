@@ -1,3 +1,5 @@
+"use client"
+
 import { Card, CardContent, Button } from "@heroui/react"
 import { ME, getAvailableMessage } from "@/lib/me"
 
@@ -15,7 +17,7 @@ export default function ContactPage() {
         <CardContent className="p-6 space-y-6">
           {cta.availableForHire && (
             <div
-              className="bg-primary/10 border border-primary/30 rounded-lg p-4"
+              className="bg-[rgba(0,255,255,0.08)] border border-[rgba(0,255,255,0.3)] neon-border-cyan rounded-lg p-4"
               data-testid="available-for-hire"
             >
               <p className="text-primary font-medium">

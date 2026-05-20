@@ -15,9 +15,9 @@ export default function Hero() {
       viewport={{ once: true, margin: "-100px" }}
       transition={{ duration: 0.4 }}
     >
-      <Card className="bg-default-100">
+      <Card className="bg-[rgba(13,13,26,0.6)] backdrop-blur-md border border-[rgba(0,255,255,0.3)] shadow-[0_0_15px_rgba(0,255,255,0.15),inset_0_0_30px_rgba(255,0,255,0.05)]">
         <CardContent className="flex flex-col items-center px-4 sm:px-6 lg:px-8 py-12 sm:py-20 text-center">
-          <Avatar className="w-40 h-40 mb-8 border-3 border-primary">
+          <Avatar className="w-40 h-40 mb-8 border-2 border-[#00FFFF] shadow-[0_0_20px_rgba(0,255,255,0.5)]">
             <Avatar.Image
               src="/profile.png"
               alt={`${profile.firstNameTH} ${profile.lastNameTH}`}
@@ -25,7 +25,7 @@ export default function Hero() {
             <Avatar.Fallback>{profile.nicknameTH}</Avatar.Fallback>
           </Avatar>
 
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-2">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-mono font-bold uppercase tracking-widest neon-text-cyan mb-2">
             {profile.firstNameTH} {profile.lastNameTH}
             {profile.nicknameTH && (
               <span className="text-foreground-500 text-xl sm:text-2xl ml-2 sm:ml-3">
@@ -34,7 +34,7 @@ export default function Hero() {
             )}
           </h1>
 
-          <Chip variant="primary" size="lg" className="mb-4">
+          <Chip variant="soft" size="lg" className="mb-4 font-mono uppercase tracking-wider bg-[rgba(0,255,255,0.08)] border border-[#00FFFF] text-[#00FFFF] neon-border-cyan">
             {profile.title}
           </Chip>
 
@@ -44,7 +44,7 @@ export default function Hero() {
           {cta.resumePdfUrl && (
             <div className="mb-8">
               <a href={cta.resumePdfUrl} download>
-                <Button variant="primary" size="lg">
+                <Button variant="primary" size="lg" className="font-mono uppercase tracking-wider neon-border-cyan">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="20"
@@ -67,26 +67,26 @@ export default function Hero() {
           )}
 
           <div className="flex flex-wrap gap-4 justify-center">
-            <Link href={`mailto:${contact.email}`} className="text-primary">
+            <Link href={`mailto:${contact.email}`} className="text-[#00FFFF] hover:neon-text-cyan transition-all font-mono text-sm">
               {contact.email}
             </Link>
-            <Link href={`tel:${contact.phone}`} className="text-primary">
+            <Link href={`tel:${contact.phone}`} className="text-[#00FFFF] hover:neon-text-cyan transition-all font-mono text-sm">
               {contact.phone}
             </Link>
             {contact.linkedin && (
-              <Link href={contact.linkedin} target="_blank" rel="noopener noreferrer" className="text-primary">
+              <Link href={contact.linkedin} target="_blank" rel="noopener noreferrer" className="text-[#00FFFF] hover:neon-text-cyan transition-all font-mono text-sm">
                 LinkedIn
               </Link>
             )}
             {contact.website && (
-              <Link href={contact.website} target="_blank" rel="noopener noreferrer" className="text-primary">
+              <Link href={contact.website} target="_blank" rel="noopener noreferrer" className="text-[#00FFFF] hover:neon-text-cyan transition-all font-mono text-sm">
                 Website
               </Link>
             )}
           </div>
         </CardContent>
       </Card>
-      <Separator className="my-6" />
+      <div className="my-8 h-px bg-gradient-to-r from-transparent via-[rgba(0,255,255,0.4)] to-transparent" />
     </motion.section>
   );
 }

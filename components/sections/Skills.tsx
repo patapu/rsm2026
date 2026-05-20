@@ -42,7 +42,7 @@ export default function Skills() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {categories.map(({ key, label, items }) => (
           <SubCard key={key}>
-            <h3 className="text-lg font-semibold text-primary mb-4">{label}</h3>
+            <h3 className="text-base font-mono font-semibold uppercase tracking-wider neon-text-cyan mb-4">{label}</h3>
             {items.map((skill) => (
               <SkillBar key={skill.name} skill={skill} />
             ))}
@@ -51,10 +51,10 @@ export default function Skills() {
       </div>
 
       <div className="mt-8">
-        <h3 className="text-lg font-semibold text-primary mb-4">Soft Skills</h3>
+        <h3 className="text-base font-mono font-semibold uppercase tracking-wider neon-text-cyan mb-4">Soft Skills</h3>
         <div className="flex flex-wrap gap-3">
           {skills.softSkills.map((skill) => (
-            <Chip key={skill} variant="soft" size="sm">
+            <Chip key={skill} variant="soft" size="sm" className="font-mono bg-[rgba(255,0,255,0.1)] border border-[rgba(255,0,255,0.3)] text-[#FF00FF]">
               {skill}
             </Chip>
           ))}

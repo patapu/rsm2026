@@ -22,12 +22,12 @@ export default function Experience() {
         {sorted.map((exp) => (
           <SubCard key={exp.company}>
             <div className="flex flex-wrap items-center gap-3 mb-4">
-              <h3 className="text-2xl font-bold text-foreground">{exp.company}</h3>
-              <Chip variant="primary" size="sm">
+              <h3 className="text-2xl font-mono font-bold uppercase tracking-wider text-foreground">{exp.company}</h3>
+              <Chip variant="primary" size="sm" className="font-mono">
                 {exp.workModel}
               </Chip>
               {exp.teamSize && (
-                <Chip variant="primary" size="sm">
+                <Chip variant="primary" size="sm" className="font-mono">
                   👥 Team {exp.teamSize}
                 </Chip>
               )}
@@ -41,7 +41,7 @@ export default function Experience() {
             {/* Career Growth */}
             {exp.roles.length > 1 && (
               <div className="mb-6">
-                <h4 className="text-sm font-semibold text-primary mb-2">
+                <h4 className="text-xs font-mono uppercase tracking-widest text-[#00FFFF] mb-2">
                   Career Growth
                 </h4>
                 <div className="space-y-1">
@@ -59,13 +59,13 @@ export default function Experience() {
 
             {/* Responsibilities */}
             <div className="mb-6">
-              <h4 className="text-sm font-semibold text-primary mb-2">
+              <h4 className="text-xs font-mono uppercase tracking-widest text-[#00FFFF] mb-2">
                 Responsibilities
               </h4>
               <ul className="space-y-1">
                 {exp.responsibilities.map((item, i) => (
                   <li key={i} className="text-sm text-foreground flex items-start gap-2">
-                    <span className="text-primary mt-0.5">•</span>
+                    <span className="text-[#00FFFF] font-mono mt-0.5">{">"}</span>
                     {item}
                   </li>
                 ))}
@@ -74,13 +74,13 @@ export default function Experience() {
 
             {/* Achievements */}
             <div className="mb-6">
-              <h4 className="text-sm font-semibold text-primary mb-2">
+              <h4 className="text-xs font-mono uppercase tracking-widest text-[#00FFFF] mb-2">
                 Achievements
               </h4>
               <ul className="space-y-1">
                 {exp.achievements.map((ach, i) => (
                   <li key={i} className="text-sm text-foreground flex items-start gap-2">
-                    <span className="text-primary mt-0.5">•</span>
+                    <span className="text-[#00FFFF] font-mono mt-0.5">{">"}</span>
                     <span>
                       {ach.metric}: <strong>{ach.value}</strong> — {ach.context}
                     </span>
@@ -92,12 +92,12 @@ export default function Experience() {
             {/* Clients */}
             {exp.clients.length > 0 && (
               <div className="mb-6">
-                <h4 className="text-sm font-semibold text-primary mb-2">
+                <h4 className="text-xs font-mono uppercase tracking-widest text-[#00FFFF] mb-2">
                   Clients
                 </h4>
                 <div className="flex flex-wrap gap-2">
                   {exp.clients.map((client) => (
-                    <Chip key={client} variant="primary" size="sm">
+                    <Chip key={client} variant="primary" size="sm" className="font-mono">
                       {client}
                     </Chip>
                   ))}
@@ -107,12 +107,12 @@ export default function Experience() {
 
             {/* Tech Stack */}
             <div>
-              <h4 className="text-sm font-semibold text-primary mb-2">
+              <h4 className="text-xs font-mono uppercase tracking-widest text-[#00FFFF] mb-2">
                 Tech Stack
               </h4>
               <div className="flex flex-wrap gap-2">
                 {exp.techStack.map((tech) => (
-                  <Chip key={tech} variant="soft" size="sm">
+                  <Chip key={tech} variant="soft" size="sm" className="font-mono bg-[rgba(255,0,255,0.1)] border border-[rgba(255,0,255,0.3)] text-[#FF00FF]">
                     {tech}
                   </Chip>
                 ))}

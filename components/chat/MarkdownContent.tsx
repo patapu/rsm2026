@@ -4,7 +4,7 @@ import type { Components } from 'react-markdown'
 
 /**
  * Styled component map for Markdown elements rendered in chat messages.
- * Uses HeroUI design tokens for consistent theming.
+ * Uses cyberpunk neon theming for consistent visual identity.
  */
 export const markdownComponents: Components = {
   p: ({ children }) => (
@@ -32,13 +32,13 @@ export const markdownComponents: Components = {
     const isBlock = className?.includes('language-')
     if (isBlock) {
       return (
-        <code className="block bg-default-50 rounded p-2 text-xs font-mono overflow-x-auto text-foreground">
+        <code className="block bg-[rgba(5,5,10,0.9)] border border-[rgba(0,255,255,0.2)] rounded p-3 text-xs font-mono overflow-x-auto text-foreground">
           {children}
         </code>
       )
     }
     return (
-      <code className="bg-default-50 rounded px-1 py-0.5 text-xs font-mono text-primary">
+      <code className="bg-[rgba(0,255,255,0.1)] border border-[rgba(0,255,255,0.3)] rounded px-1 py-0.5 text-xs font-mono text-[#00FFFF]">
         {children}
       </code>
     )

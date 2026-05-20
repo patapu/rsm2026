@@ -27,6 +27,7 @@ vi.mock('@/lib/redis', () => ({
   redis: {
     incr: vi.fn().mockResolvedValue(1),
     expire: vi.fn().mockResolvedValue(1),
+    exists: vi.fn().mockResolvedValue(1),
     lrange: vi.fn().mockResolvedValue([]),
     rpush: vi.fn().mockResolvedValue(2),
     ltrim: vi.fn().mockResolvedValue('OK'),
@@ -40,7 +41,9 @@ vi.mock('@/lib/redis', () => ({
       chatSessionId && chatSessionId !== 'default'
         ? `chat:history:${id}:${chatSessionId}`
         : `chat:history:${id}`,
-    rateLimit: (id: string) => `ratelimit:${id}`,
+    rateLimit: (id: string, ip?: string) =>
+      ip ? `ratelimit:${ip}:${id}` : `ratelimit:${id}`,
+    fpMint: (ip: string) => `fp-mint:${ip}`,
     blocked: (ip: string) => `blocked:${ip}`,
   },
 }))
@@ -102,6 +105,8 @@ beforeEach(() => {
 
   // Default mock: redis.incr returns 1 (first request, under limit)
   vi.mocked(redis.incr).mockResolvedValue(1)
+  // Default mock: redis.exists returns 1 (session present)
+  vi.mocked(redis.exists).mockResolvedValue(1)
   vi.mocked(redis.lrange).mockResolvedValue([])
   vi.mocked(redis.rpush).mockResolvedValue(2)
   vi.mocked(redis.ltrim).mockResolvedValue('OK')
@@ -561,8 +566,10 @@ describe('POST /api/chat', () => {
       const req = makeValidRequest()
       await POST(req)
 
+      // Rate limit key is now scoped by IP + visitorId; no IP headers in the
+      // test request means the route resolves ip to 'unknown'.
       expect(vi.mocked(redis.expire)).toHaveBeenCalledWith(
-        `ratelimit:${VALID_TOKEN}`,
+        `ratelimit:unknown:${VALID_TOKEN}`,
         60,
       )
     })
