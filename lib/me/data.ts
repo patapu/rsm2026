@@ -23,7 +23,7 @@ export const rawMeData = {
   },
 
   summary: {
-    bio: "Lead Developer 8+ ปี ที่ไม่ได้แค่เขียน code — แต่ออกแบบ architecture, วาง database schema, deploy production และนำทีมส่งมอบ CRM platform ให้องค์กรกว่า 15 ราย ตั้งแต่ Millennium Auto ถึง CP-Meiji ถนัดสร้างระบบ config-driven ที่ทีมต่อยอดได้โดยไม่ต้องรอ dev — CRM ที่ทำครอบคลุมทั้ง Sales, Marketing, Service และ Field Service ครบวงจร",
+    bio: "Lead Developer 8+ ปี ที่ไม่ได้แค่เขียน code — แต่ออกแบบ architecture, วาง database schema, deploy production และนำทีมส่งมอบ CRM platform ให้องค์กรกว่า 15 ราย ตั้งแต่ Millennium Auto ถึง CP-Meiji ถนัดสร้างระบบ config-driven ที่ทีมต่อยอดได้โดยไม่ต้องรอ dev — CRM ที่ทำครอบคลุมทั้ง Sales, Marketing, Service และ Field Service ครบวงจร — ปัจจุบันทำงานแบบ AI-first ด้วย Claude Code เป็นหลัก",
     yearsOfExperience: 8,
     highlights: [
       "ส่งมอบ CRM platform ให้ 15+ องค์กร — ไม่มีงานไหนเหมือนกัน ครอบคลุม Sales, Marketing, Service, Field Service",
@@ -67,6 +67,9 @@ export const rawMeData = {
       { name: "Git", level: 90 },
       { name: "n8n", level: 75 },
       { name: "Figma", level: 60 },
+      { name: "GitHub Copilot", level: 70 },
+      { name: "Kiro (AI IDE)", level: 75 },
+      { name: "Claude Code", level: 85 },
     ],
     softSkills: [
       "Config-driven System Design — ลด dev time อย่างเป็นระบบ",
@@ -77,6 +80,7 @@ export const rawMeData = {
       "CRM Domain Expertise — Sales, Marketing, Service, Field Service workflows",
       "Multi-tenant SaaS Architecture Design",
       "Real-time System Design (WebSocket, Event-driven)",
+      "AI-Assisted Development — ใช้ Claude Code เป็นหลัก ออกแบบ dynamic pipeline ผ่าน orchestrator ที่ route งานให้ sub-agents เฉพาะทางแบบ adaptive ต่างจาก spec-driven pipeline เชิงเส้นของ Kiro (spec → design → tasks); ผ่านการใช้จริงตั้งแต่ Copilot → Kiro → Claude Code",
     ],
   },
 
@@ -152,7 +156,7 @@ export const rawMeData = {
       category: "CRM Platform",
       description: "CRM platform หลักของบริษัทที่ deploy ให้ลูกค้าองค์กรกว่า 14 ราย แต่ละรายมี customization และ module ที่แตกต่างกัน ดูแลและพัฒนาต่อเนื่องมากกว่า 4 ปี — ครอบคลุม Sales, Marketing, Service, Field Service และ Customer 360 ทั้งหมดในระบบเดียว",
       role: "Developer → Lead Developer — ร่วมพัฒนาตั้งแต่ต้นจนถึงนำทีม ดูแล architecture, deployment, code review และ migration",
-      techStack: ["React 16", "JavaScript", "Ant Design", "Material-UI", "Styled Components", "Socket.IO", "Chart.js", "Nivo", "React Router", "Redux", "Axios", "PostgreSQL", "Redis", "Docker", "Nginx", "Jenkins", "Kubernetes", "Azure AD (MSAL)"],
+      techStack: ["React 16", "JavaScript", "Ant Design", "Material-UI", "Styled Components", "Socket.IO", "Chart.js", "Nivo", "React Router", "Redux", "Axios", "PostgreSQL", "Redis", "Docker", "Nginx", "Jenkins", "Kubernetes", "Azure AD (MSAL)", "GitHub Copilot"],
       highlights: [
         "Deploy ให้ลูกค้าองค์กร 14 ราย แต่ละรายมี config และ module เป็นของตัวเอง",
         "ดูแล production environment ด้วย Docker + Nginx + Jenkins + Kubernetes (Azure & IBM Cloud)",
@@ -177,7 +181,7 @@ export const rawMeData = {
       category: "CRM Platform",
       description: "CRM platform generation ใหม่ที่ redesign architecture ทั้งหมดจาก S-CRM เดิม — ย้ายจาก React SPA มาเป็น Next.js 15 App Router, เปลี่ยนจาก raw SQL เป็น Prisma ORM, เพิ่ม Redis session/cache layer และ config-driven CRUD system ที่ลด boilerplate ได้กว่า 70%",
       role: "Lead Developer & Architect — ออกแบบ architecture ใหม่ทั้งหมด, สร้าง core framework, นำทีมพัฒนา",
-      techStack: ["Next.js 15", "React 19", "JavaScript", "PostgreSQL", "Prisma", "Redis", "Docker", "Nginx", "Ant Design", "Tailwind CSS", "MinIO", "Azure AD", "n8n"],
+      techStack: ["Next.js 15", "React 19", "JavaScript", "PostgreSQL", "Prisma", "Redis", "Docker", "Nginx", "Ant Design", "Tailwind CSS", "MinIO", "Azure AD", "n8n", "Kiro (AI IDE)", "Claude Code"],
       highlights: [
         "ออกแบบ Centralized CRUD Helper — auto audit fields, access control, transaction management และ audit logging ในที่เดียว",
         "สร้าง Config-driven Form & Table system — สร้างหน้า CRUD ใหม่ได้ภายในชั่วโมงจาก config ล้วน",
@@ -189,6 +193,7 @@ export const rawMeData = {
         "Azure AD SSO + Lucia v3 Auth — enterprise-grade authentication พร้อม PKCE flow",
         "Centralized Error Handling — log errors to DB + auto-create Azure Planner tasks สำหรับ critical issues",
         "ลด development time หน้าใหม่จาก 2-3 วัน เหลือ 2-3 ชั่วโมง ด้วย config-driven approach",
+        "พัฒนาด้วย AI-assisted workflow — เริ่มจาก Kiro (spec-driven pipeline) แล้วย้ายมา Claude Code (dynamic sub-agent pipeline) ที่ route งานเองได้",
       ],
     },
     {
@@ -277,7 +282,7 @@ export const rawMeData = {
       category: "Loyalty & CRM Platform",
       description: "Loyalty platform ที่ครอบคลุมทั้ง member-facing app (สะสมแต้ม, แลกรางวัล) และ admin back-office — ขึ้นโครง translation system (next-intl + DB-driven content per language) และ centralized CRUD framework ที่ทีมต่อยอดได้ทันที รองรับ multi-language CMS, role-based access control, MinIO file storage และ interactive transaction management",
       role: "Lead Developer & Architect — ขึ้นโครง translation system, ออกแบบ centralized CRUD + transaction management, วาง architecture ทั้ง admin และ LIFF app",
-      techStack: ["Next.js 15", "React 19", "JavaScript", "Prisma", "PostgreSQL", "Redis (ioredis)", "Ant Design", "Tailwind CSS", "next-intl", "Lucia Auth", "Arctic (OAuth)", "MinIO", "MDX Editor", "dnd-kit", "Docker", "Yup"],
+      techStack: ["Next.js 15", "React 19", "JavaScript", "Prisma", "PostgreSQL", "Redis (ioredis)", "Ant Design", "Tailwind CSS", "next-intl", "Lucia Auth", "Arctic (OAuth)", "MinIO", "MDX Editor", "dnd-kit", "Docker", "Yup", "GitHub Copilot"],
       highlights: [
         "ขึ้นโครง Translation System — next-intl + DB-driven content per language ที่ admin จัดการภาษาได้เองผ่าน CMS โดยไม่ต้องแก้ code",
         "ออกแบบ Centralized CRUD Helper — auto audit fields (createdBy/updatedBy/createdPgm), UUID generation, nested relation handling, transaction management ในที่เดียว",
@@ -323,6 +328,19 @@ export const rawMeData = {
         "Unread message tracking และ notification system",
       ],
     },
+    {
+      name: "Customer Portal",
+      category: "Customer Service / Case Management",
+      description: "Product ใหม่สำหรับจัดการ support case ครบ lifecycle — ตั้งแต่เปิดเคส, ติดตามสถานะ, Reopen จนถึงปิดเคส พร้อม Dashboard ภาพรวมในหน้าเดียว ออกแบบเป็น product แบบ modular สามารถขายพ่วงกับ CRM customer service หรือใช้แบบ standalone ได้ Build แบบ AI-first ด้วย Claude Code ตั้งแต่วาง architecture ไปจนถึง implementation",
+      role: "Solo Architect & Full Stack Developer — ออกแบบ architecture, schema และ UX flow เองทั้งหมด พัฒนาแบบ AI-first ด้วย Claude Code ผ่าน orchestrator + sub-agents เฉพาะทาง",
+      techStack: ["Next.js 15", "React 19", "TypeScript", "PostgreSQL", "Prisma", "Redis", "Tailwind CSS", "Ant Design", "Docker", "Nginx", "Claude Code"],
+      highlights: [
+        "จัดการ support case ครบ lifecycle — New case → Monitor → Reopen → Close ในที่เดียว",
+        "Dashboard ภาพรวมสถานะเคส — ติดตาม case status และ workload ได้จากหน้าเดียว",
+        "ออกแบบเป็น product แบบ modular — ขายพ่วงกับ CRM customer service หรือใช้แบบ standalone ก็ได้",
+        "Orchestrator route งานให้ sub-agents เฉพาะทางผ่าน dynamic pipeline — พัฒนาแบบ AI-first ด้วย Claude Code",
+      ],
+    },
   ],
 
   education: [
@@ -340,9 +358,10 @@ export const rawMeData = {
     { name: "n8n Workflow Automation", provider: "MSC (In-house)" },
     { name: "Kiro AI-Powered IDE", provider: "MSC (In-house)" },
     { name: "AI-Assisted Development Workflow", provider: "Self-study" },
+    { name: "Claude Code Agentic Development", provider: "Self-study" },
   ],
 
-  learningNow: ["AI-Assisted Development (Claude Code, Kiro)", "System Design Patterns", "Platform Engineering"],
+  learningNow: ["Agentic Development with Claude Code (sub-agent pipelines)", "System Design Patterns", "Platform Engineering"],
 
   hobbies: [
     { name: "เวทเทรนนิ่ง", icon: "🏋️", frequency: 5 },
