@@ -6,18 +6,41 @@
 import Redis from 'ioredis'
 
 // ──────────────────────────────────────────
-//  Module-load env var validation
+//  Lazy Redis singleton
+//
+//  REDIS_URL is a RUNTIME secret, not a build-time variable. Connecting (or
+//  throwing) at module-load time breaks `next build`, which statically imports
+//  every API route handler to collect routes — that import chain reaches this
+//  module and would fail before any request is ever served.
+//
+//  Instead we construct the client lazily on first property access. The env
+//  check therefore runs only when a real request actually touches Redis.
 // ──────────────────────────────────────────
 
-if (!process.env.REDIS_URL) {
-  throw new Error('REDIS_URL environment variable is required')
+let _client: Redis | null = null
+
+function getClient(): Redis {
+  if (!_client) {
+    if (!process.env.REDIS_URL) {
+      throw new Error('REDIS_URL environment variable is required')
+    }
+    _client = new Redis(process.env.REDIS_URL)
+  }
+  return _client
 }
 
-// ──────────────────────────────────────────
-//  Redis singleton
-// ──────────────────────────────────────────
-
-export const redis = new Redis(process.env.REDIS_URL)
+/**
+ * Lazy proxy that behaves exactly like an ioredis instance but defers the real
+ * connection until the first property/method access. Methods are bound to the
+ * underlying client so ioredis's internal `this` stays correct.
+ */
+export const redis = new Proxy({} as Redis, {
+  get(_target, prop, receiver) {
+    const client = getClient()
+    const value = Reflect.get(client, prop, receiver)
+    return typeof value === 'function' ? value.bind(client) : value
+  },
+}) as Redis
 
 // ──────────────────────────────────────────
 //  Key helpers

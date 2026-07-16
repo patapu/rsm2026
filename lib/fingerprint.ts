@@ -5,13 +5,9 @@
 
 import { createHmac } from 'crypto'
 
-// ──────────────────────────────────────────
-//  Module-load env var validation
-// ──────────────────────────────────────────
-
-if (!process.env.FINGERPRINT_SECRET) {
-  throw new Error('FINGERPRINT_SECRET environment variable is required')
-}
+// Note: FINGERPRINT_SECRET is validated lazily at request time (see the route
+// handler), NOT at module load. A top-level throw here would break `next build`,
+// which statically imports every API route handler during route collection.
 
 // ──────────────────────────────────────────
 //  createVisitorId

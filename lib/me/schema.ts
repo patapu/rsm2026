@@ -44,6 +44,14 @@ export const ProfileSchema = z.object({
   title: z.string().min(1),
   tagline: z.string().min(1),
   location: z.string().min(1),
+  /** Personal details — used for job-portal profiles (JobsDB/JobThai), not rendered on the public site. */
+  gender: z.enum(['male', 'female']).optional(),
+  /** ISO date, YYYY-MM-DD. */
+  dateOfBirth: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, { message: 'Expected YYYY-MM-DD' })
+    .optional(),
+  militaryStatus: z.string().optional(),
 })
 
 export const ContactSchema = z.object({

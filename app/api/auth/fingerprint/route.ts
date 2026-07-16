@@ -69,7 +69,10 @@ export async function POST(req: NextRequest) {
 
   // 3. Create visitor ID (Req 9.1)
   const { ua, lang, screenHint } = parsed.data
-  const secret = process.env.FINGERPRINT_SECRET!
+  const secret = process.env.FINGERPRINT_SECRET
+  if (!secret) {
+    throw new Error('FINGERPRINT_SECRET environment variable is required')
+  }
   const visitorId = createVisitorId(ua, lang, screenHint, secret)
 
   // 4. Store session in Redis — TTL 24h (Req 9.3)

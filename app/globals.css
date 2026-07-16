@@ -177,6 +177,101 @@ body::after {
   80%      { transform: translate(1px, 1px); }
 }
 
+/* ─────────────────────────────────────────
+   Cyberpunk message entrance (assistant replies)
+   One-shot glitch: RGB channel-split + neon flicker + scanline sweep,
+   settling to clean, fully-legible text. Replaces the old typewriter.
+   ───────────────────────────────────────── */
+.cyber-reveal {
+  position: relative;
+  animation: cyber-reveal-in 0.65s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  will-change: opacity, transform, filter;
+}
+
+/* Scanline sweep passes top→bottom once over the fresh message. */
+.cyber-reveal::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 255, 255, 0.12) 45%,
+    rgba(255, 0, 255, 0.18) 50%,
+    rgba(0, 255, 255, 0.12) 55%,
+    transparent 100%
+  );
+  background-size: 100% 45%;
+  background-repeat: no-repeat;
+  mix-blend-mode: screen;
+  animation: cyber-reveal-scan 0.65s ease-out both;
+}
+
+@keyframes cyber-reveal-in {
+  0% {
+    opacity: 0;
+    transform: translateX(-6px) skewX(6deg);
+    filter: brightness(1.8);
+    text-shadow: -3px 0 #FF00FF, 3px 0 #00FFFF;
+    clip-path: inset(0 0 55% 0);
+  }
+  12% {
+    opacity: 1;
+    transform: translateX(6px) skewX(-4deg);
+    clip-path: inset(45% 0 0 0);
+  }
+  24% {
+    transform: translateX(-4px) skewX(2deg);
+    text-shadow: 3px 0 #00FFFF, -3px 0 #FF00FF;
+    clip-path: inset(0 0 20% 0);
+  }
+  40% {
+    opacity: 0.6;
+    transform: translateX(3px);
+    filter: brightness(1.4);
+    clip-path: inset(0 0 0 0);
+  }
+  55% {
+    opacity: 1;
+    transform: translateX(-2px);
+    text-shadow: -2px 0 #FF00FF, 2px 0 #00FFFF;
+  }
+  72% {
+    transform: translateX(1px);
+    text-shadow: 1px 0 #00FFFF, -1px 0 #FF00FF;
+  }
+  88% {
+    opacity: 0.9;
+    filter: brightness(1.1);
+    text-shadow: 0 0 6px rgba(0, 255, 255, 0.4);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) skewX(0);
+    filter: brightness(1);
+    text-shadow: none;
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes cyber-reveal-scan {
+  0%   { transform: translateY(-100%); opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateY(220%); opacity: 0; }
+}
+
+/* Respect reduced-motion: show the finished text with no glitch/sweep. */
+@media (prefers-reduced-motion: reduce) {
+  .cyber-reveal {
+    animation: none;
+  }
+  .cyber-reveal::after {
+    display: none;
+  }
+}
+
 /* Terminal-style horizontal accent line */
 .terminal-line::before {
   content: ">";

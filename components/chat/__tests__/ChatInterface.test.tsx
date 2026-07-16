@@ -33,12 +33,21 @@ vi.mock('@heroui/react', () => ({
   ),
 }))
 
-// Mock framer-motion
-vi.mock('framer-motion', () => ({
-  motion: {
-    div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
-  },
-}))
+// Mock framer-motion. Strip framer-only props so they aren't forwarded onto
+// the DOM node, and provide AnimatePresence + the motion elements used by
+// ChatInterface (div wrapper + span loading dots).
+vi.mock('framer-motion', () => {
+  const passthrough = ({ children, initial, animate, exit, transition, ...rest }: any) => (
+    <div {...rest}>{children}</div>
+  )
+  return {
+    AnimatePresence: ({ children }: any) => children,
+    motion: {
+      div: passthrough,
+      span: passthrough,
+    },
+  }
+})
 
 // Mock react-markdown
 vi.mock('react-markdown', () => ({
@@ -176,8 +185,8 @@ describe('ChatInterface', () => {
       fireEvent.click(sendButton)
     })
 
-    // Loading indicator should appear
-    expect(screen.getByText('กำลังพิมพ์...')).toBeTruthy()
+    // Loading indicator should appear (animated dots labelled "กำลังพิมพ์")
+    expect(screen.getByRole('status', { name: 'กำลังพิมพ์' })).toBeTruthy()
   })
 
   it('displays error message on 429 response', async () => {

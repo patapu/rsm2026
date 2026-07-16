@@ -3,7 +3,7 @@
 import { Card, CardContent } from '@heroui/react'
 import ReactMarkdown from 'react-markdown'
 import { markdownComponents } from './MarkdownContent'
-import TypewriterText from './TypewriterText'
+import GlitchReveal from './GlitchReveal'
 
 export interface ChatMessageData {
   role: 'user' | 'assistant'
@@ -12,7 +12,11 @@ export interface ChatMessageData {
 
 interface ChatMessageProps {
   message: ChatMessageData
-  /** When true and role is 'assistant', the message types out character-by-character. */
+  /**
+   * When true and role is 'assistant', the message plays a one-shot cyberpunk
+   * entrance (glitch/RGB-split/scanline). The full content is in the DOM
+   * immediately — no per-character reveal.
+   */
   isStreaming?: boolean
   onDoneStreaming?: () => void
 }
@@ -20,7 +24,8 @@ interface ChatMessageProps {
 /**
  * Chat bubble component.
  * AI messages appear on the left (Card), user messages on the right (cyan neon tint).
- * AI messages are rendered with react-markdown, or with TypewriterText while streaming.
+ * AI messages render with react-markdown; a NEW reply additionally plays a
+ * cyberpunk entrance effect via GlitchReveal.
  */
 export default function ChatMessage({
   message,
@@ -42,7 +47,7 @@ export default function ChatMessage({
         <Card className="max-w-[80%] bg-[rgba(13,13,26,0.6)] border border-[rgba(255,0,255,0.3)] shadow-[0_0_8px_rgba(255,0,255,0.15)]">
           <CardContent className="px-3 py-2">
             {isStreaming ? (
-              <TypewriterText text={message.content} onDone={onDoneStreaming} />
+              <GlitchReveal text={message.content} onDone={onDoneStreaming} />
             ) : (
               <ReactMarkdown components={markdownComponents}>
                 {message.content}

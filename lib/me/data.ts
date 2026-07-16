@@ -14,6 +14,9 @@ export const rawMeData = {
     title: "Lead Developer",
     tagline: "สร้างระบบที่ scale ได้จริง ด้วย code ที่คนอ่านรู้เรื่อง",
     location: "Bangna Bangkok, Thailand",
+    gender: "male" as const,
+    dateOfBirth: "1994-02-27",
+    militaryStatus: "ได้รับการยกเว้น (เรียน รด.)",
   },
 
   contact: {
