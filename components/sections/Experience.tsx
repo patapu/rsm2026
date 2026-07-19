@@ -2,22 +2,23 @@
 
 import { useMemo } from "react";
 import { Chip } from "@heroui/react";
-import { ME } from "@/lib/me";
 import SubCard from "@/components/ui/SubCard";
 import AnimatedSection from "@/components/ui/AnimatedSection";
+import { useLocale } from "@/components/i18n/LocaleProvider";
 
 export default function Experience() {
-  const { experience } = ME;
+  const { me, t } = useLocale();
+  const { experience } = me;
 
   // Sort newest first (by startDate descending). Memoized so we don't re-sort
-  // on every render — the underlying array is stable per render of ME.
+  // on every render — the underlying array is stable per render of `me`.
   const sorted = useMemo(
     () => [...experience].sort((a, b) => b.startDate.localeCompare(a.startDate)),
     [experience],
   );
 
   return (
-    <AnimatedSection id="experience" title="Experience">
+    <AnimatedSection id="experience" title={t("sections.experience")}>
       <div className="space-y-12">
         {sorted.map((exp) => (
           <SubCard key={exp.company}>
@@ -42,7 +43,7 @@ export default function Experience() {
             {exp.roles.length > 1 && (
               <div className="mb-6">
                 <h4 className="text-xs font-mono uppercase tracking-widest text-[#00FFFF] mb-2">
-                  Career Growth
+                  {t("experience.careerGrowth")}
                 </h4>
                 <div className="space-y-1">
                   {exp.roles.map((role, i) => (
@@ -60,7 +61,7 @@ export default function Experience() {
             {/* Responsibilities */}
             <div className="mb-6">
               <h4 className="text-xs font-mono uppercase tracking-widest text-[#00FFFF] mb-2">
-                Responsibilities
+                {t("experience.responsibilities")}
               </h4>
               <ul className="space-y-1">
                 {exp.responsibilities.map((item, i) => (
@@ -75,7 +76,7 @@ export default function Experience() {
             {/* Achievements */}
             <div className="mb-6">
               <h4 className="text-xs font-mono uppercase tracking-widest text-[#00FFFF] mb-2">
-                Achievements
+                {t("experience.achievements")}
               </h4>
               <ul className="space-y-1">
                 {exp.achievements.map((ach, i) => (
@@ -93,7 +94,7 @@ export default function Experience() {
             {exp.clients.length > 0 && (
               <div className="mb-6">
                 <h4 className="text-xs font-mono uppercase tracking-widest text-[#00FFFF] mb-2">
-                  Clients
+                  {t("experience.clients")}
                 </h4>
                 <div className="flex flex-wrap gap-2">
                   {exp.clients.map((client) => (
@@ -108,7 +109,7 @@ export default function Experience() {
             {/* Tech Stack */}
             <div>
               <h4 className="text-xs font-mono uppercase tracking-widest text-[#00FFFF] mb-2">
-                Tech Stack
+                {t("experience.techStack")}
               </h4>
               <div className="flex flex-wrap gap-2">
                 {exp.techStack.map((tech) => (

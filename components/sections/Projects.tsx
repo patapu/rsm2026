@@ -1,15 +1,16 @@
 "use client";
 
 import { Chip, Link } from "@heroui/react";
-import { ME } from "@/lib/me";
 import SubCard from "@/components/ui/SubCard";
 import AnimatedSection from "@/components/ui/AnimatedSection";
+import { useLocale } from "@/components/i18n/LocaleProvider";
 
 export default function Projects() {
-  const { projects } = ME;
+  const { me, t } = useLocale();
+  const { projects } = me;
 
   return (
-    <AnimatedSection id="projects" title="Projects">
+    <AnimatedSection id="projects" title={t("sections.projects")}>
       <div className="grid grid-cols-1 gap-6">
         {projects.map((project) => (
           <SubCard key={project.name} className="flex flex-col">
@@ -24,7 +25,7 @@ export default function Projects() {
               <p className="text-sm text-foreground mb-3">{project.description}</p>
 
               <p className="text-xs text-foreground-500 mb-3">
-                <span className="font-medium">Role:</span> {project.role}
+                <span className="font-medium">{t("projects.role")}</span> {project.role}
               </p>
 
               {project.highlights.length > 0 && (
@@ -58,7 +59,7 @@ export default function Projects() {
                       rel="noopener noreferrer"
                       className="text-[#00FFFF] font-mono text-xs hover:neon-text-cyan transition-all"
                     >
-                      Repository
+                      {t("projects.repository")}
                     </Link>
                   )}
                   {project.liveUrl && (
@@ -68,7 +69,7 @@ export default function Projects() {
                       rel="noopener noreferrer"
                       className="text-[#00FFFF] font-mono text-xs hover:neon-text-cyan transition-all"
                     >
-                      Live Demo
+                      {t("projects.liveDemo")}
                     </Link>
                   )}
                 </div>

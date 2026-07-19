@@ -4,14 +4,17 @@ import { Input, Button } from '@heroui/react'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import ChatMessage, { type ChatMessageData } from './ChatMessage'
+import { useLocale } from '@/components/i18n/LocaleProvider'
+import { DEFAULT_LOCALE, translate, type Locale } from '@/lib/i18n'
 
 /**
  * Maps an HTTP error status code to a user-facing error message.
  * Returns null if the status code does not map to a known error.
+ * `locale` defaults to `'th'` so existing callers are unaffected.
  */
-export function getErrorMessage(status: number): string | null {
-  if (status === 429) return 'คุณส่งข้อความบ่อยเกินไป กรุณารอสักครู่'
-  if (status >= 500 && status <= 599) return 'เกิดข้อผิดพลาด กรุณาลองใหม่ภายหลัง'
+export function getErrorMessage(status: number, locale: Locale = DEFAULT_LOCALE): string | null {
+  if (status === 429) return translate(locale, 'chat.errorRateLimit')
+  if (status >= 500 && status <= 599) return translate(locale, 'chat.errorGeneric')
   return null
 }
 
@@ -50,14 +53,14 @@ async function ensureFingerprint(): Promise<void> {
  * Single POST /api/chat call. Shared between the first attempt and the
  * post-401 retry so they can't drift apart.
  */
-function postChat(message: string): Promise<Response> {
+function postChat(message: string, locale: Locale): Promise<Response> {
   return fetch('/api/chat', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'x-chat-session': getChatSessionId(),
     },
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({ message, locale }),
   })
 }
 
@@ -65,6 +68,7 @@ function postChat(message: string): Promise<Response> {
  * Full-page chat interface using HeroUI components.
  */
 export default function ChatInterface() {
+  const { locale, t } = useLocale()
   const [messages, setMessages] = useState<ChatMessageData[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -139,28 +143,28 @@ export default function ChatInterface() {
     setIsLoading(true)
 
     try {
-      let response = await postChat(userMessage.content)
+      let response = await postChat(userMessage.content, locale)
 
       // If the fingerprint cookie expired, refresh and retry once.
       if (response.status === 401) {
         await ensureFingerprint()
-        response = await postChat(userMessage.content)
+        response = await postChat(userMessage.content, locale)
       }
 
       if (!response.ok) {
-        const errorMsg = getErrorMessage(response.status)
-        setError(errorMsg ?? 'เกิดข้อผิดพลาด กรุณาลองใหม่ภายหลัง')
+        const errorMsg = getErrorMessage(response.status, locale)
+        setError(errorMsg ?? t('chat.errorGeneric'))
         return
       }
 
       const data = await response.json()
       setMessages((prev) => [...prev, { role: 'assistant', content: data.reply }])
     } catch {
-      setError('ไม่สามารถเชื่อมต่อได้ กรุณาลองใหม่')
+      setError(t('chat.errorConnection'))
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [locale, t])
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -196,7 +200,7 @@ export default function ChatInterface() {
                 </svg>
               </div>
               <p className="font-mono uppercase tracking-wider neon-text-cyan text-sm max-w-xs">
-                สวัสดีครับ! ถามอะไรเกี่ยวกับประสบการณ์หรือทักษะของผมได้เลย
+                {t('chat.emptyStateGreeting')}
               </p>
             </div>
           )}
@@ -227,7 +231,7 @@ export default function ChatInterface() {
             <div className="flex justify-start mb-3">
               <div
                 className="bg-[rgba(255,0,255,0.1)] border border-[rgba(255,0,255,0.3)] rounded-lg px-3 py-2"
-                aria-label="กำลังพิมพ์"
+                aria-label={t('chat.typingAriaLabel')}
                 role="status"
               >
                 <div className="flex items-center gap-1.5">
@@ -268,7 +272,7 @@ export default function ChatInterface() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="พิมพ์ข้อความ..."
+            placeholder={t('chat.inputPlaceholder')}
             disabled={isLoading}
             className="flex-1 border border-[rgba(255,0,255,0.3)] focus:border-[#00FFFF] focus:shadow-[0_0_10px_rgba(0,255,255,0.3)]"
             variant="secondary"
@@ -283,7 +287,7 @@ export default function ChatInterface() {
             size="lg"
             data-testid="chat-send"
           >
-            ส่ง
+            {t('chat.sendButton')}
           </Button>
         </div>
       </div>

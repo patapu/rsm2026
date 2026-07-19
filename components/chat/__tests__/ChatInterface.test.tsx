@@ -147,7 +147,7 @@ describe('ChatInterface', () => {
         '/api/chat',
         expect.objectContaining({
           method: 'POST',
-          body: JSON.stringify({ message: 'สวัสดี' }),
+          body: JSON.stringify({ message: 'สวัสดี', locale: 'th' }),
         }),
       )
     })

@@ -59,3 +59,51 @@ describe('Feature: heroui-chat-layout, Property 5: Error status code mapping', (
     )
   })
 })
+
+describe('Feature: i18n-th-en-switcher — getErrorMessage locale param', () => {
+  it("defaults to Thai when locale is omitted (matches explicit 'th')", () => {
+    fc.assert(
+      fc.property(fc.integer({ min: 100, max: 599 }), (status) => {
+        expect(getErrorMessage(status)).toBe(getErrorMessage(status, 'th'))
+      }),
+      { numRuns: 100 }
+    )
+  })
+
+  it("status 429 with locale='en' returns an English message (not Thai)", () => {
+    fc.assert(
+      fc.property(fc.constant(429), (status) => {
+        const result = getErrorMessage(status, 'en')
+        expect(result).not.toBeNull()
+        expect(result).toContain('quickly')
+        expect(result).not.toContain('บ่อยเกินไป')
+      }),
+      { numRuns: 10 }
+    )
+  })
+
+  it("status 500-599 with locale='en' returns an English generic error message", () => {
+    fc.assert(
+      fc.property(fc.integer({ min: 500, max: 599 }), (status) => {
+        const result = getErrorMessage(status, 'en')
+        expect(result).not.toBeNull()
+        expect(result).toContain('wrong')
+        expect(result).not.toContain('ลองใหม่ภายหลัง')
+      }),
+      { numRuns: 100 }
+    )
+  })
+
+  it('status codes other than 429 and 500-599 return null regardless of locale', () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 100, max: 599 }).filter((n) => n !== 429 && (n < 500 || n > 599)),
+        fc.constantFrom('th', 'en'),
+        (status, locale) => {
+          expect(getErrorMessage(status, locale as 'th' | 'en')).toBeNull()
+        }
+      ),
+      { numRuns: 100 }
+    )
+  })
+})

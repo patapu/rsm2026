@@ -1,15 +1,16 @@
 "use client";
 
 import { Chip } from "@heroui/react";
-import { ME } from "@/lib/me";
 import SubCard from "@/components/ui/SubCard";
 import AnimatedSection from "@/components/ui/AnimatedSection";
+import { useLocale } from "@/components/i18n/LocaleProvider";
 
 export default function Education() {
-  const { education, courses, learningNow } = ME;
+  const { me, t } = useLocale();
+  const { education, courses, learningNow } = me;
 
   return (
-    <AnimatedSection id="education" title="Education">
+    <AnimatedSection id="education" title={t("sections.education")}>
       <div className="space-y-6">
         {education.map((edu) => (
           <SubCard key={`${edu.institution}-${edu.field}`}>
@@ -33,7 +34,7 @@ export default function Education() {
       {/* Courses */}
       {courses.length > 0 && (
         <div className="mt-10">
-          <h3 className="text-base font-mono font-semibold uppercase tracking-wider neon-text-cyan mb-4">📚 Courses & Training</h3>
+          <h3 className="text-base font-mono font-semibold uppercase tracking-wider neon-text-cyan mb-4">📚 {t("education.coursesAndTraining")}</h3>
           <div className="flex flex-wrap gap-3">
             {courses.map((course) => (
               <Chip key={course.name} variant="soft" size="sm" className="font-mono bg-[rgba(255,0,255,0.1)] border border-[rgba(255,0,255,0.3)] text-[#FF00FF]">
@@ -47,7 +48,7 @@ export default function Education() {
       {/* Learning Now */}
       {learningNow.length > 0 && (
         <div className="mt-8">
-          <h3 className="text-base font-mono font-semibold uppercase tracking-wider neon-text-cyan mb-4">🚀 Currently Learning</h3>
+          <h3 className="text-base font-mono font-semibold uppercase tracking-wider neon-text-cyan mb-4">🚀 {t("education.currentlyLearning")}</h3>
           <div className="flex flex-wrap gap-3">
             {learningNow.map((item) => (
               <Chip key={item} variant="primary" size="sm" className="font-mono">

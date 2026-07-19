@@ -8,6 +8,7 @@
  */
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
+import { renderWithLocale } from "@/test-utils/renderWithLocale";
 
 // Mock next/image to render a plain img tag
 vi.mock("next/image", () => ({
@@ -47,6 +48,51 @@ describe("Hero Section", () => {
     expect(
       screen.getByText(ME.profile.tagline)
     ).toBeTruthy();
+  });
+
+  it("renders the romanized/English name on locale 'en'", () => {
+    renderWithLocale(<Hero />, "en");
+    const heading = screen.getByRole("heading", { level: 1 });
+    expect(heading.textContent).toContain("Pakorn");
+    expect(heading.textContent).toContain("Chaowanaprasert");
+  });
+
+  it("renders the Thai-script name on locale 'th'", () => {
+    renderWithLocale(<Hero />, "th");
+    const heading = screen.getByRole("heading", { level: 1 });
+    expect(heading.textContent).toContain("ปกร");
+    expect(heading.textContent).toContain("เชาวนประเสริฐ");
+  });
+
+  describe("PDF download buttons", () => {
+    it("point at two different files regardless of active locale", () => {
+      renderWithLocale(<Hero />, "en");
+      const thLink = screen.getByText("Resume (TH)").closest("a");
+      const enLink = screen.getByText("Resume (EN)").closest("a");
+
+      expect(thLink).toBeTruthy();
+      expect(enLink).toBeTruthy();
+      expect(thLink!.getAttribute("href")).not.toBe(enLink!.getAttribute("href"));
+    });
+
+    it("each label matches its actual (genuinely TH / genuinely EN) file", () => {
+      renderWithLocale(<Hero />, "en");
+      const thLink = screen.getByText("Resume (TH)").closest("a");
+      const enLink = screen.getByText("Resume (EN)").closest("a");
+
+      expect(thLink!.getAttribute("href")).toBe(ME.cta.resumePdfUrl);
+      expect(enLink!.getAttribute("href")).toBe(ME.cta.resumePdfUrlEn);
+    });
+
+    it("stay pointed at the same TH/EN files when locale is 'th'", () => {
+      renderWithLocale(<Hero />, "th");
+      const thLink = screen.getByText("Resume (TH)").closest("a");
+      const enLink = screen.getByText("Resume (EN)").closest("a");
+
+      expect(thLink!.getAttribute("href")).toBe(ME.cta.resumePdfUrl);
+      expect(enLink!.getAttribute("href")).toBe(ME.cta.resumePdfUrlEn);
+      expect(thLink!.getAttribute("href")).not.toBe(enLink!.getAttribute("href"));
+    });
   });
 });
 

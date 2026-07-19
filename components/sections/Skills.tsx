@@ -1,17 +1,18 @@
 "use client";
 
 import { Chip, ProgressBar } from "@heroui/react";
-import { ME } from "@/lib/me";
 import type { Skill } from "@/lib/me";
 import SubCard from "@/components/ui/SubCard";
 import AnimatedSection from "@/components/ui/AnimatedSection";
+import { useLocale } from "@/components/i18n/LocaleProvider";
+import type { MessageKey } from "@/lib/i18n";
 
-const categoryLabels: Record<string, string> = {
-  languages: "Languages",
-  frameworks: "Frameworks",
-  databases: "Databases",
-  devops: "DevOps",
-  tools: "Tools",
+const categoryLabelKeys: Record<string, MessageKey> = {
+  languages: "skills.languages",
+  frameworks: "skills.frameworks",
+  databases: "skills.databases",
+  devops: "skills.devops",
+  tools: "skills.tools",
 };
 
 function SkillBar({ skill }: { skill: Skill }) {
@@ -29,16 +30,17 @@ function SkillBar({ skill }: { skill: Skill }) {
 }
 
 export default function Skills() {
-  const { skills } = ME;
+  const { me, t } = useLocale();
+  const { skills } = me;
 
-  const categories = Object.entries(categoryLabels).map(([key, label]) => ({
+  const categories = Object.entries(categoryLabelKeys).map(([key, labelKey]) => ({
     key,
-    label,
+    label: t(labelKey),
     items: skills[key as keyof typeof skills] as Skill[],
   }));
 
   return (
-    <AnimatedSection id="skills" title="Skills">
+    <AnimatedSection id="skills" title={t("sections.skills")}>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {categories.map(({ key, label, items }) => (
           <SubCard key={key}>
@@ -51,7 +53,7 @@ export default function Skills() {
       </div>
 
       <div className="mt-8">
-        <h3 className="text-base font-mono font-semibold uppercase tracking-wider neon-text-cyan mb-4">Soft Skills</h3>
+        <h3 className="text-base font-mono font-semibold uppercase tracking-wider neon-text-cyan mb-4">{t("skills.softSkills")}</h3>
         <div className="flex flex-wrap gap-3">
           {skills.softSkills.map((skill) => (
             <Chip key={skill} variant="soft" size="sm" className="font-mono bg-[rgba(255,0,255,0.1)] border border-[rgba(255,0,255,0.3)] text-[#FF00FF]">

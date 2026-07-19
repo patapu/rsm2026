@@ -2,23 +2,25 @@
 
 import { RESUME_SECTIONS } from "./sections"
 import { useActiveSection } from "./useActiveSection"
+import { useLocale } from "@/components/i18n/LocaleProvider"
 
 const SECTION_IDS = RESUME_SECTIONS.map((s) => s.id)
 
 export default function RightSidebar() {
   const activeSection = useActiveSection(SECTION_IDS)
+  const { t } = useLocale()
 
   const scrollToSection = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" })
   }
 
   return (
-    <aside aria-label="On this page">
+    <aside aria-label={t("resume.onThisPage")}>
       <p className="text-xs font-semibold text-foreground-500 uppercase mb-3 pl-2">
-        On this page
+        {t("resume.onThisPage")}
       </p>
       <nav className="space-y-1 pl-2 border-l border-divider">
-        {RESUME_SECTIONS.map(({ id, label }) => (
+        {RESUME_SECTIONS.map(({ id, labelKey }) => (
           <button
             key={id}
             onClick={() => scrollToSection(id)}
@@ -28,7 +30,7 @@ export default function RightSidebar() {
                 : "text-foreground-500 font-mono hover:text-[#00FFFF] transition-colors"
             }`}
           >
-            {label}
+            {t(labelKey)}
           </button>
         ))}
       </nav>

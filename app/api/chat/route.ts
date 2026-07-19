@@ -11,7 +11,7 @@ import { verifyToken } from '@/lib/verify-token'
 import { redis, keys } from '@/lib/redis'
 import { readFileSync } from 'fs'
 import { join } from 'path'
-import { ME } from '@/lib/me'
+import { getMeForLocale, type Locale } from '@/lib/i18n'
 
 // ──────────────────────────────────────────
 //  Zod schema
@@ -19,16 +19,22 @@ import { ME } from '@/lib/me'
 
 const RequestSchema = z.object({
   message: z.string().min(1).max(500),
+  // Optional + defaulted so existing callers that don't send a locale keep working.
+  locale: z.enum(['th', 'en']).optional().default('th'),
 })
 
 // ──────────────────────────────────────────
 //  System prompt cache (module-level)
 // ──────────────────────────────────────────
 
-let cachedSystemPrompt: string | null = null
+// The base prompt file is read from disk and cached exactly once. Per-request
+// locale directives are appended on top of the cached base string in
+// `getSystemPrompt` below — never cached themselves, so requests for
+// different locales can't clobber each other's cached prompt.
+let cachedBaseSystemPrompt: string | null = null
 
-export function getSystemPrompt(): string {
-  if (!cachedSystemPrompt) {
+function getBaseSystemPrompt(): string {
+  if (cachedBaseSystemPrompt === null) {
     // Try multiple paths: inside project first, then parent directory
     const paths = [
       join(process.cwd(), 'prompts/system-prompt-v2.md'),
@@ -36,15 +42,24 @@ export function getSystemPrompt(): string {
     ]
     for (const p of paths) {
       try {
-        cachedSystemPrompt = readFileSync(p, 'utf-8')
+        cachedBaseSystemPrompt = readFileSync(p, 'utf-8')
         break
       } catch {
         // try next path
       }
     }
-    if (!cachedSystemPrompt) cachedSystemPrompt = ''
+    if (cachedBaseSystemPrompt === null) cachedBaseSystemPrompt = ''
   }
-  return cachedSystemPrompt
+  return cachedBaseSystemPrompt
+}
+
+const LOCALE_DIRECTIVE: Record<Locale, string> = {
+  en: '\n\nRespond in English regardless of the language of the question.',
+  th: '\n\nตอบเป็นภาษาไทยเสมอ ไม่ว่าคำถามจะเป็นภาษาอะไร',
+}
+
+export function getSystemPrompt(locale: Locale = 'th'): string {
+  return getBaseSystemPrompt() + LOCALE_DIRECTIVE[locale]
 }
 
 // ──────────────────────────────────────────
@@ -163,7 +178,8 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const { message } = parsed.data
+  const { message, locale } = parsed.data
+  const meData = getMeForLocale(locale)
 
   // 3. Rate limit check (keyed by IP + visitorId to resist cookie-swap evasion)
   const rateLimitKey = keys.rateLimit(visitorId, ip)
@@ -198,8 +214,8 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // 6. Get system prompt (cached)
-  const systemPrompt = getSystemPrompt()
+  // 6. Get system prompt (base cached, locale directive appended per-request)
+  const systemPrompt = getSystemPrompt(locale)
   console.log({ instructionsLength: systemPrompt.length, hasInstructions: systemPrompt.length > 0 })
 
   // 7. Forward to n8n
@@ -230,15 +246,15 @@ export async function POST(req: NextRequest) {
         },
         instructions: systemPrompt,
         me: {
-          profile: ME.profile,
-          contact: ME.contact,
-          summary: ME.summary,
-          skills: ME.skills,
-          experience: ME.experience,
-          projects: ME.projects,
-          education: ME.education,
-          hobbies: ME.hobbies,
-          cta: ME.cta,
+          profile: meData.profile,
+          contact: meData.contact,
+          summary: meData.summary,
+          skills: meData.skills,
+          experience: meData.experience,
+          projects: meData.projects,
+          education: meData.education,
+          hobbies: meData.hobbies,
+          cta: meData.cta,
         },
       }),
     })

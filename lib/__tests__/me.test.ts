@@ -7,6 +7,7 @@ import { describe, it, expect } from 'vitest'
 import fc from 'fast-check'
 import {
   ME,
+  ME_EN,
   MeDataSchema,
   type MeData,
   getAvailableMessage,
@@ -389,5 +390,56 @@ describe('getAvailableMessage', () => {
     const msg = getAvailableMessage(now)
     expect(msg).toContain('กุมภาพันธ์')
     expect(msg).toContain('2027')
+  })
+
+  it('defaults to Thai when locale is omitted', () => {
+    const now = new Date(2026, 0, 1) // Jan 2026
+    expect(getAvailableMessage(now)).toBe(getAvailableMessage(now, 'th'))
+  })
+
+  describe('English locale', () => {
+    it('is deterministic for a given `now` date', () => {
+      const now = new Date(2026, 0, 15)
+      const first = getAvailableMessage(now, 'en')
+      const second = getAvailableMessage(now, 'en')
+      expect(first).toBe(second)
+    })
+
+    it('shifts the target month by ME_EN.cta.availableMonthsFromNow and uses an English month name', () => {
+      const now = new Date(2026, 0, 1) // Jan 2026
+      const msg = getAvailableMessage(now, 'en')
+      const target = new Date(2026, 0 + ME_EN.cta.availableMonthsFromNow, 1)
+      const englishMonths = [
+        'January', 'February', 'March', 'April',
+        'May', 'June', 'July', 'August',
+        'September', 'October', 'November', 'December',
+      ]
+      expect(msg).toContain(englishMonths[target.getMonth()])
+      expect(msg).toContain(String(target.getFullYear()))
+    })
+
+    it('handles month overflow into the next year', () => {
+      const now = new Date(2026, 11, 1) // Dec 2026
+      const msg = getAvailableMessage(now, 'en')
+      const target = new Date(2026, 11 + ME_EN.cta.availableMonthsFromNow, 1)
+      const englishMonths = [
+        'January', 'February', 'March', 'April',
+        'May', 'June', 'July', 'August',
+        'September', 'October', 'November', 'December',
+      ]
+      expect(msg).toContain(englishMonths[target.getMonth()])
+      expect(msg).toContain(String(target.getFullYear()))
+    })
+
+    it('contains no Thai characters', () => {
+      const now = new Date(2026, 0, 1)
+      const msg = getAvailableMessage(now, 'en')
+      expect(msg).not.toMatch(/[฀-๿]/)
+    })
+
+    it('produces a different message than Thai for the same date', () => {
+      const now = new Date(2026, 0, 1)
+      expect(getAvailableMessage(now, 'en')).not.toBe(getAvailableMessage(now, 'th'))
+    })
   })
 })

@@ -1,12 +1,12 @@
 "use client";
 
-import { ME } from "@/lib/me";
 import SubCard from "@/components/ui/SubCard";
 import AnimatedSection from "@/components/ui/AnimatedSection";
+import { useLocale } from "@/components/i18n/LocaleProvider";
 
-function FrequencyStars({ frequency }: { frequency: number }) {
+function FrequencyStars({ frequency, label }: { frequency: number; label: string }) {
   return (
-    <span className="text-sm" aria-label={`ความถี่ ${frequency} จาก 5`}>
+    <span className="text-sm" aria-label={label}>
       {Array.from({ length: 5 }, (_, i) => (
         <span key={i} className={i < frequency ? "text-[#00FFFF] drop-shadow-[0_0_4px_rgba(0,255,255,0.7)]" : "text-foreground-500/30"}>
           ★
@@ -17,10 +17,11 @@ function FrequencyStars({ frequency }: { frequency: number }) {
 }
 
 export default function Hobbies() {
-  const { hobbies } = ME;
+  const { me, t } = useLocale();
+  const { hobbies } = me;
 
   return (
-    <AnimatedSection id="hobbies" title="Hobbies" withSeparator={false}>
+    <AnimatedSection id="hobbies" title={t("sections.hobbies")} withSeparator={false}>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {hobbies.map((hobby) => (
           <SubCard key={hobby.name}>
@@ -30,7 +31,10 @@ export default function Hobbies() {
               </span>
               <div>
                 <p className="text-foreground font-medium">{hobby.name}</p>
-                <FrequencyStars frequency={hobby.frequency} />
+                <FrequencyStars
+                  frequency={hobby.frequency}
+                  label={t("hobbies.frequencyLabel", { n: hobby.frequency })}
+                />
               </div>
             </div>
           </SubCard>

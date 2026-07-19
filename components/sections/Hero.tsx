@@ -2,10 +2,24 @@
 
 import { Avatar, Button, Card, CardContent, Chip, Link, Separator } from "@heroui/react";
 import { motion } from "framer-motion";
+import { useLocale } from "@/components/i18n/LocaleProvider";
 import { ME } from "@/lib/me";
 
 export default function Hero() {
-  const { profile, contact, cta } = ME;
+  const { me, locale } = useLocale();
+  const { profile, contact } = me;
+
+  // The two PDF download buttons must always resolve to the genuinely-Thai
+  // and genuinely-English files, regardless of the active locale. `me.cta`
+  // is locale-swapped (on `en` it overrides `resumePdfUrl` to the English
+  // file too), so source both paths from the canonical Thai dataset, which
+  // carries both `resumePdfUrl` (TH) and `resumePdfUrlEn` (EN) correctly.
+  const resumePdfUrlTH = ME.cta.resumePdfUrl;
+  const resumePdfUrlEN = ME.cta.resumePdfUrlEn;
+
+  const displayFirstName = locale === "en" ? profile.firstName : profile.firstNameTH;
+  const displayLastName = locale === "en" ? profile.lastName : profile.lastNameTH;
+  const displayNickname = locale === "en" ? profile.nickname : profile.nicknameTH;
 
   return (
     <motion.section
@@ -20,16 +34,16 @@ export default function Hero() {
           <Avatar className="w-40 h-40 mb-8 border-2 border-[#00FFFF] shadow-[0_0_20px_rgba(0,255,255,0.5)]">
             <Avatar.Image
               src="/profile.png"
-              alt={`${profile.firstNameTH} ${profile.lastNameTH}`}
+              alt={`${displayFirstName} ${displayLastName}`}
             />
-            <Avatar.Fallback>{profile.nicknameTH}</Avatar.Fallback>
+            <Avatar.Fallback>{displayNickname}</Avatar.Fallback>
           </Avatar>
 
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-mono font-bold uppercase tracking-widest neon-text-cyan mb-2">
-            {profile.firstNameTH} {profile.lastNameTH}
-            {profile.nicknameTH && (
+            {displayFirstName} {displayLastName}
+            {displayNickname && (
               <span className="text-foreground-500 text-xl sm:text-2xl ml-2 sm:ml-3">
-                ({profile.nicknameTH})
+                ({displayNickname})
               </span>
             )}
           </h1>
@@ -40,29 +54,53 @@ export default function Hero() {
 
           <p className="text-base sm:text-lg text-foreground-500 italic mb-8">{profile.tagline}</p>
 
-          {/* PDF Download Button */}
-          {cta.resumePdfUrl && (
-            <div className="mb-8">
-              <a href={cta.resumePdfUrl} download>
-                <Button variant="primary" size="lg" className="font-mono uppercase tracking-wider neon-border-cyan">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
-                  </svg>
-                  Download Resume (PDF)
-                </Button>
-              </a>
+          {/* PDF Download Buttons */}
+          {(resumePdfUrlTH || resumePdfUrlEN) && (
+            <div className="mb-8 flex flex-wrap justify-center gap-3 sm:gap-4">
+              {resumePdfUrlTH && (
+                <a href={resumePdfUrlTH} download>
+                  <Button variant="primary" size="lg" className="font-mono uppercase tracking-wider neon-border-cyan">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="7 10 12 15 17 10" />
+                      <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    Resume (TH)
+                  </Button>
+                </a>
+              )}
+              {resumePdfUrlEN && (
+                <a href={resumePdfUrlEN} download>
+                  <Button variant="primary" size="lg" className="font-mono uppercase tracking-wider neon-border-cyan">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="7 10 12 15 17 10" />
+                      <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    Resume (EN)
+                  </Button>
+                </a>
+              )}
             </div>
           )}
 
