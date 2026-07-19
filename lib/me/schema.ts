@@ -141,6 +141,8 @@ export const CtaSchema = z.object({
   message: z.string(),
   availableMonthsFromNow: z.number().int().min(0).max(12),
   resumePdfUrl: z.string(),
+  /** English CV PDF URL. Optional — omit or leave undefined until the English resume is available. */
+  resumePdfUrlEn: z.string().optional(),
   qrCodeImage: z.string(),
   availableForHire: z.boolean(),
   preferredContact: z.string(),

@@ -1,6 +1,7 @@
 ﻿/**
  * scripts/generate-pdf.tsx
- * Generate resume PDF from me.ts data -> public/resume-pakorn.pdf
+ * Generate resume PDFs from me.ts data -> public/resume-pakorn.pdf (TH) and
+ * public/resume-pakorn-en.pdf (EN)
  * Run: npx tsx scripts/generate-pdf.tsx
  */
 
@@ -8,7 +9,7 @@ import React from 'react'
 import { renderToFile, Document, Page, Text, View, StyleSheet, Font, Image } from '@react-pdf/renderer'
 import path from 'path'
 import fs from 'fs'
-import { ME } from '../lib/me'
+import { ME, ME_EN, type MeData } from '../lib/me'
 
 // ──────────────────────────────────────────
 //  Register Thai Font
@@ -185,8 +186,10 @@ const profileImagePath = `data:image/png;base64,${profileImageBuffer.toString('b
 //  PDF Document Component
 // ──────────────────────────────────────────
 
-function ResumePDF() {
-  const { profile, contact, summary, skills, experience, projects, education, courses, learningNow } = ME
+function ResumePDF({ data }: { data: MeData }) {
+  const { profile, contact, summary, skills, experience, projects, education, courses, learningNow, settings } = data
+  const locale = settings.language === 'en' ? 'en-US' : 'th-TH'
+  const displayNickname = settings.language === 'en' ? profile.nickname : profile.nicknameTH
 
   return (
     <Document title={`Resume - ${profile.firstName} ${profile.lastName}`} author={profile.firstName}>
@@ -196,7 +199,7 @@ function ResumePDF() {
           <Image style={styles.profileImage} src={profileImagePath} />
           <View style={styles.headerInfo}>
             <Text style={styles.name}>
-              {profile.firstName} {profile.lastName} ({profile.nicknameTH})
+              {profile.firstName} {profile.lastName} ({displayNickname})
             </Text>
             <Text style={styles.title}>{profile.title}</Text>
             <View style={styles.contactRow}>
@@ -347,7 +350,7 @@ function ResumePDF() {
 
         {/* Footer */}
         <Text style={styles.footer}>
-          Generated from pakorn.dev | {new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long' })}
+          Generated from pakorn.dev | {new Date().toLocaleDateString(locale, { year: 'numeric', month: 'long' })}
         </Text>
       </Page>
     </Document>
@@ -359,10 +362,15 @@ function ResumePDF() {
 // ──────────────────────────────────────────
 
 async function main() {
-  const outputPath = path.resolve(__dirname, '../public/resume-pakorn.pdf')
-  console.log('Generating resume PDF...')
-  await renderToFile(<ResumePDF />, outputPath)
-  console.log(`PDF saved to: ${outputPath}`)
+  const thOutputPath = path.resolve(__dirname, '../public/resume-pakorn.pdf')
+  console.log('Generating resume PDF (TH)...')
+  await renderToFile(<ResumePDF data={ME} />, thOutputPath)
+  console.log(`PDF saved to: ${thOutputPath}`)
+
+  const enOutputPath = path.resolve(__dirname, '../public/resume-pakorn-en.pdf')
+  console.log('Generating resume PDF (EN)...')
+  await renderToFile(<ResumePDF data={ME_EN} />, enOutputPath)
+  console.log(`PDF saved to: ${enOutputPath}`)
 }
 
 main().catch((err) => {

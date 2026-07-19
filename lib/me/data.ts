@@ -382,6 +382,7 @@ export const rawMeData = {
     message: "กำลังมองหา Lead Developer ที่ลงมือทำได้ตั้งแต่ architecture ถึง production? มาคุยกันครับ",
     availableMonthsFromNow: 2,
     resumePdfUrl: "/resume-pakorn.pdf",
+    resumePdfUrlEn: "/resume-pakorn-en.pdf",
     qrCodeImage: "",
     availableForHire: true,
     preferredContact: "email",
