@@ -375,26 +375,26 @@ describe('getAvailableMessage', () => {
     expect(first).toBe(second)
   })
 
-  it('shifts the target month by availableMonthsFromNow', () => {
-    // ME.cta.availableMonthsFromNow is 2 in the current data
+  it('shifts the target month by availableMonthsFromNow (site default locale is English)', () => {
+    // ME_EN.cta.availableMonthsFromNow is 2 in the current data
     const now = new Date(2026, 0, 1) // Jan 2026
     const msg = getAvailableMessage(now)
-    // Jan + 2 = March -> มีนาคม
-    expect(msg).toContain('มีนาคม')
+    // Jan + 2 = March
+    expect(msg).toContain('March')
     expect(msg).toContain('2026')
   })
 
-  it('handles month overflow into the next year', () => {
+  it('handles month overflow into the next year (site default locale is English)', () => {
     // Dec + 2 = next-year Feb
     const now = new Date(2026, 11, 1) // Dec 2026
     const msg = getAvailableMessage(now)
-    expect(msg).toContain('กุมภาพันธ์')
+    expect(msg).toContain('February')
     expect(msg).toContain('2027')
   })
 
-  it('defaults to Thai when locale is omitted', () => {
+  it('defaults to English when locale is omitted', () => {
     const now = new Date(2026, 0, 1) // Jan 2026
-    expect(getAvailableMessage(now)).toBe(getAvailableMessage(now, 'th'))
+    expect(getAvailableMessage(now)).toBe(getAvailableMessage(now, 'en'))
   })
 
   describe('English locale', () => {

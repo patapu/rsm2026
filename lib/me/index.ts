@@ -48,13 +48,17 @@ type AvailableMessageLocale = 'th' | 'en'
 
 /**
  * Builds the "available from" message shown on the contact page, localized
- * for `locale` (defaults to `'th'` so existing callers are unaffected).
+ * for `locale` (defaults to `'en'` so existing callers are unaffected).
+ *
+ * The literal default below can't import `DEFAULT_LOCALE` from `lib/i18n`
+ * without creating the same circular dependency noted above — `lib/i18n` is
+ * the source of truth for the site default; keep this literal in sync with it.
  *
  * `now` is a required parameter so the function is deterministic and testable.
  * Callers decide where "now" comes from (e.g., `new Date()` on the client after
  * hydration) to avoid server/client hydration mismatches around midnight.
  */
-export function getAvailableMessage(now: Date, locale: AvailableMessageLocale = 'th'): string {
+export function getAvailableMessage(now: Date, locale: AvailableMessageLocale = 'en'): string {
   const cta = locale === 'en' ? ME_EN.cta : ME.cta
   const target = new Date(now.getFullYear(), now.getMonth() + cta.availableMonthsFromNow, 1)
   const year = target.getFullYear()

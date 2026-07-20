@@ -10,7 +10,7 @@
  *
  * Covers:
  *  - a request with `locale: 'en'` is accepted
- *  - a request omitting `locale` still works (defaults to 'th')
+ *  - a request omitting `locale` still works (defaults to 'en')
  *  - the system prompt differs between 'en' and 'th'
  *  - calling with 'th' then 'en' then 'th' produces the correct prompt each
  *    time (guards the cross-request prompt-cache bug: the base prompt is
@@ -106,8 +106,8 @@ describe('getSystemPrompt', () => {
     expect(getSystemPrompt('en').startsWith(base)).toBe(true)
   })
 
-  it("defaults to 'th' when called with no argument", () => {
-    expect(getSystemPrompt()).toBe(getSystemPrompt('th'))
+  it("defaults to 'en' when called with no argument", () => {
+    expect(getSystemPrompt()).toBe(getSystemPrompt('en'))
   })
 })
 
@@ -117,10 +117,10 @@ describe('POST /api/chat — locale handling', () => {
     expect(res.status).toBe(200)
   })
 
-  it('accepts a request omitting locale and returns 200 (defaults to th)', async () => {
+  it('accepts a request omitting locale and returns 200 (defaults to en)', async () => {
     const res = await POST(makeRequest({ message: 'hello' }))
     expect(res.status).toBe(200)
-    expect(capturedInstructions[0]).toBe(getSystemPrompt('th'))
+    expect(capturedInstructions[0]).toBe(getSystemPrompt('en'))
   })
 
   it("rejects an invalid locale value with 400", async () => {

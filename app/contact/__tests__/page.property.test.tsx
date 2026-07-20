@@ -55,6 +55,13 @@ vi.mock('@/lib/me', () => ({
   get ME() {
     return mockME
   },
+  // ContactPage renders without a LocaleProvider ancestor here, so it falls
+  // back to DEFAULT_LOCALE (English) and resolves `me` via `getMeForLocale`,
+  // which reads ME_EN — not ME — for that locale. Point both at the same
+  // mutable fixture so this property holds regardless of which one is read.
+  get ME_EN() {
+    return mockME
+  },
   getAvailableMessage: () => 'mock-available-message',
 }))
 

@@ -2,8 +2,9 @@
  * Property-based test: Error status code mapping (Property 5)
  * Validates: Requirements 3.10
  *
- * For any status 429 → "ส่งบ่อยเกินไป" substring;
- * 500-599 → "ลองใหม่ภายหลัง" substring;
+ * Called with no explicit locale, so these exercise DEFAULT_LOCALE (English):
+ * for any status 429 → "quickly" substring;
+ * 500-599 → "wrong" substring;
  * Any other status → null.
  */
 import { describe, it, expect, vi } from 'vitest'
@@ -24,23 +25,23 @@ vi.mock('../ChatMessage', () => ({
 import { getErrorMessage } from '../ChatInterface'
 
 describe('Feature: heroui-chat-layout, Property 5: Error status code mapping', () => {
-  it('status 429 returns message containing "บ่อยเกินไป"', () => {
+  it('status 429 returns message containing "quickly" (default locale is English)', () => {
     fc.assert(
       fc.property(fc.constant(429), (status) => {
         const result = getErrorMessage(status)
         expect(result).not.toBeNull()
-        expect(result).toContain('บ่อยเกินไป')
+        expect(result).toContain('quickly')
       }),
       { numRuns: 100 }
     )
   })
 
-  it('status 500-599 returns message containing "ลองใหม่ภายหลัง"', () => {
+  it('status 500-599 returns message containing "wrong" (default locale is English)', () => {
     fc.assert(
       fc.property(fc.integer({ min: 500, max: 599 }), (status) => {
         const result = getErrorMessage(status)
         expect(result).not.toBeNull()
-        expect(result).toContain('ลองใหม่ภายหลัง')
+        expect(result).toContain('wrong')
       }),
       { numRuns: 100 }
     )
@@ -61,10 +62,10 @@ describe('Feature: heroui-chat-layout, Property 5: Error status code mapping', (
 })
 
 describe('Feature: i18n-th-en-switcher — getErrorMessage locale param', () => {
-  it("defaults to Thai when locale is omitted (matches explicit 'th')", () => {
+  it("defaults to English when locale is omitted (matches explicit 'en')", () => {
     fc.assert(
       fc.property(fc.integer({ min: 100, max: 599 }), (status) => {
-        expect(getErrorMessage(status)).toBe(getErrorMessage(status, 'th'))
+        expect(getErrorMessage(status)).toBe(getErrorMessage(status, 'en'))
       }),
       { numRuns: 100 }
     )

@@ -35,8 +35,8 @@ describe("lib/i18n dictionary completeness", () => {
     expect([...LOCALES].sort()).toEqual(["en", "th"])
   })
 
-  it("DEFAULT_LOCALE is 'th'", () => {
-    expect(DEFAULT_LOCALE).toBe("th")
+  it("DEFAULT_LOCALE is 'en'", () => {
+    expect(DEFAULT_LOCALE).toBe("en")
   })
 
   it("LOCALE_COOKIE is a stable, non-empty cookie name", () => {
@@ -45,7 +45,7 @@ describe("lib/i18n dictionary completeness", () => {
 })
 
 describe("getMeForLocale", () => {
-  it("returns the Thai (default) dataset for 'th'", () => {
+  it("returns the Thai dataset for 'th'", () => {
     expect(getMeForLocale("th")).toBe(ME)
   })
 
@@ -63,8 +63,11 @@ describe("parseLocale", () => {
     expect(parseLocale("en")).toBe("en")
   })
 
-  it("falls back to DEFAULT_LOCALE for 'th'", () => {
-    expect(parseLocale("th")).toBe(DEFAULT_LOCALE)
+  // Regression guard for the DEFAULT_LOCALE-flip trap: an explicit 'th'
+  // cookie must round-trip to 'th' even though 'en' is now the default —
+  // parseLocale must not collapse every non-'en' value onto DEFAULT_LOCALE.
+  it("narrows the literal string 'th' to 'th' (not DEFAULT_LOCALE)", () => {
+    expect(parseLocale("th")).toBe("th")
   })
 
   it("falls back to DEFAULT_LOCALE for undefined/null/garbage input", () => {
@@ -72,6 +75,12 @@ describe("parseLocale", () => {
     expect(parseLocale(null)).toBe(DEFAULT_LOCALE)
     expect(parseLocale("fr")).toBe(DEFAULT_LOCALE)
     expect(parseLocale("")).toBe(DEFAULT_LOCALE)
+  })
+
+  it("parseLocale('th') === 'th' and parseLocale('en') === 'en' and parseLocale(undefined) === DEFAULT_LOCALE", () => {
+    expect(parseLocale("th")).toBe("th")
+    expect(parseLocale("en")).toBe("en")
+    expect(parseLocale(undefined)).toBe(DEFAULT_LOCALE)
   })
 })
 

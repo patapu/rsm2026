@@ -39,11 +39,11 @@ export { mockRouter }
 
 /**
  * Renders `ui` inside `<LocaleProvider initialLocale={locale}>`.
- * Defaults to `'th'` (the site default) when `locale` is omitted.
+ * Defaults to `'en'` (the site default) when `locale` is omitted.
  */
 export function renderWithLocale(
   ui: ReactElement,
-  locale: Locale = "th",
+  locale: Locale = "en",
   options?: Omit<RenderOptions, "wrapper">,
 ) {
   return render(<LocaleProvider initialLocale={locale}>{ui}</LocaleProvider>, options)

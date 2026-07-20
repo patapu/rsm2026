@@ -17,7 +17,7 @@ export type Locale = 'th' | 'en'
 
 export const LOCALES: Locale[] = ['th', 'en']
 
-export const DEFAULT_LOCALE: Locale = 'th'
+export const DEFAULT_LOCALE: Locale = 'en'
 
 /** Cookie name used to persist the visitor's chosen locale. */
 export const LOCALE_COOKIE = 'locale'
@@ -36,9 +36,14 @@ export function getMeForLocale(locale: Locale): MeData {
  * Narrows an arbitrary string (e.g. a raw cookie value) to a known `Locale`,
  * falling back to `DEFAULT_LOCALE` for anything else (missing cookie,
  * tampered value, etc.).
+ *
+ * Checks membership in `LOCALES` explicitly rather than comparing against a
+ * single known value — both `'th'` and `'en'` must round-trip unchanged, so
+ * an explicit locale cookie is never silently overridden by whichever locale
+ * happens to be the default.
  */
 export function parseLocale(value: string | undefined | null): Locale {
-  return value === 'en' ? 'en' : DEFAULT_LOCALE
+  return LOCALES.includes(value as Locale) ? (value as Locale) : DEFAULT_LOCALE
 }
 
 // ──────────────────────────────────────────

@@ -113,13 +113,13 @@ beforeEach(() => {
 })
 
 describe('ChatInterface', () => {
-  it('renders welcome message when no messages', async () => {
+  it('renders welcome message when no messages (site default locale is English)', async () => {
     await act(async () => {
       render(<ChatInterface />)
     })
 
     expect(
-      screen.getByText('สวัสดีครับ! ถามอะไรเกี่ยวกับประสบการณ์หรือทักษะของผมได้เลย')
+      screen.getByText('Hi! Ask me anything about my experience or skills.')
     ).toBeTruthy()
   })
 
@@ -147,13 +147,13 @@ describe('ChatInterface', () => {
         '/api/chat',
         expect.objectContaining({
           method: 'POST',
-          body: JSON.stringify({ message: 'สวัสดี', locale: 'th' }),
+          body: JSON.stringify({ message: 'สวัสดี', locale: 'en' }),
         }),
       )
     })
   })
 
-  it('shows loading indicator "กำลังพิมพ์..." during request', async () => {
+  it('shows loading indicator "Typing" during request (site default locale is English)', async () => {
     // Make the POST /api/chat hang so we can observe loading state
     mockFetch.mockImplementation((url: string, options?: any) => {
       if (url === '/api/auth/fingerprint') {
@@ -185,8 +185,8 @@ describe('ChatInterface', () => {
       fireEvent.click(sendButton)
     })
 
-    // Loading indicator should appear (animated dots labelled "กำลังพิมพ์")
-    expect(screen.getByRole('status', { name: 'กำลังพิมพ์' })).toBeTruthy()
+    // Loading indicator should appear (animated dots labelled "Typing")
+    expect(screen.getByRole('status', { name: 'Typing' })).toBeTruthy()
   })
 
   it('displays error message on 429 response', async () => {
@@ -224,10 +224,10 @@ describe('ChatInterface', () => {
       fireEvent.click(sendButton)
     })
 
-    // Error message should appear
+    // Error message should appear (site default locale is English)
     await waitFor(() => {
       expect(
-        screen.getByText('คุณส่งข้อความบ่อยเกินไป กรุณารอสักครู่')
+        screen.getByText("You're sending messages too quickly. Please wait a moment.")
       ).toBeTruthy()
     })
   })

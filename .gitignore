@@ -43,6 +43,7 @@ next-env.d.ts
 # editor / tool data
 /.claude
 /.kiro
+/.context
 
 # n8n local stack (contains secrets)
 /n8n/stack.env

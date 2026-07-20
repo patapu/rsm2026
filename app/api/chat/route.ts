@@ -11,7 +11,7 @@ import { verifyToken } from '@/lib/verify-token'
 import { redis, keys } from '@/lib/redis'
 import { readFileSync } from 'fs'
 import { join } from 'path'
-import { getMeForLocale, type Locale } from '@/lib/i18n'
+import { getMeForLocale, DEFAULT_LOCALE, type Locale } from '@/lib/i18n'
 
 // ──────────────────────────────────────────
 //  Zod schema
@@ -20,7 +20,7 @@ import { getMeForLocale, type Locale } from '@/lib/i18n'
 const RequestSchema = z.object({
   message: z.string().min(1).max(500),
   // Optional + defaulted so existing callers that don't send a locale keep working.
-  locale: z.enum(['th', 'en']).optional().default('th'),
+  locale: z.enum(['th', 'en']).optional().default(DEFAULT_LOCALE),
 })
 
 // ──────────────────────────────────────────
@@ -58,7 +58,7 @@ const LOCALE_DIRECTIVE: Record<Locale, string> = {
   th: '\n\nตอบเป็นภาษาไทยเสมอ ไม่ว่าคำถามจะเป็นภาษาอะไร',
 }
 
-export function getSystemPrompt(locale: Locale = 'th'): string {
+export function getSystemPrompt(locale: Locale = DEFAULT_LOCALE): string {
   return getBaseSystemPrompt() + LOCALE_DIRECTIVE[locale]
 }
 

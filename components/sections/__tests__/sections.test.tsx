@@ -21,20 +21,20 @@ vi.mock("next/image", () => ({
 import Hero from "../Hero";
 import Skills from "../Skills";
 import Experience from "../Experience";
-import { ME } from "@/lib/me";
+import { ME, ME_EN } from "@/lib/me";
 
 describe("Hero Section", () => {
-  it("shows name (Thai) correctly", () => {
+  it("shows name (English, the site default) correctly", () => {
     render(<Hero />);
     const heading = screen.getByRole("heading", { level: 1 });
-    expect(heading.textContent).toContain("ปกร");
-    expect(heading.textContent).toContain("เชาวนประเสริฐ");
+    expect(heading.textContent).toContain("Pakorn");
+    expect(heading.textContent).toContain("Chaowanaprasert");
   });
 
-  it("shows nickname (Thai)", () => {
+  it("shows nickname (English, the site default)", () => {
     render(<Hero />);
     // Nickname appears both in Avatar.Fallback and in the heading -> use getAllByText
-    const matches = screen.getAllByText(/เกื้อ/);
+    const matches = screen.getAllByText(/Kur/);
     expect(matches.length).toBeGreaterThan(0);
   });
 
@@ -46,7 +46,7 @@ describe("Hero Section", () => {
   it("shows tagline", () => {
     render(<Hero />);
     expect(
-      screen.getByText(ME.profile.tagline)
+      screen.getByText(ME_EN.profile.tagline)
     ).toBeTruthy();
   });
 
@@ -132,9 +132,9 @@ describe("Skills Section", () => {
     }
   });
 
-  it("shows every soft skill from ME", () => {
+  it("shows every soft skill from ME_EN (site default locale is English)", () => {
     render(<Skills />);
-    for (const skill of ME.skills.softSkills) {
+    for (const skill of ME_EN.skills.softSkills) {
       expect(screen.getByText(skill)).toBeTruthy();
     }
   });

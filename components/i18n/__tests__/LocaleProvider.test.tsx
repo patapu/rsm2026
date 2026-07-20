@@ -6,7 +6,7 @@
  * Unit tests for LocaleProvider / useLocale:
  *  - initialLocale prop is honored (locale + me resolve correctly)
  *  - t() falls back sanely on an unknown key
- *  - useLocale() outside a Provider still returns real th-locale data
+ *  - useLocale() outside a Provider still returns real DEFAULT_LOCALE data
  */
 import { screen, fireEvent } from "@testing-library/react"
 import { describe, it, expect } from "vitest"
@@ -72,9 +72,9 @@ describe("LocaleProvider", () => {
     expect(screen.getByTestId("locale").textContent).toBe("en")
   })
 
-  it("useLocale() outside any <LocaleProvider> still returns real th-locale data (no throw)", () => {
+  it("useLocale() outside any <LocaleProvider> still returns real DEFAULT_LOCALE (en) data (no throw)", () => {
     expect(() => render(<Consumer />)).not.toThrow()
-    expect(screen.getByTestId("locale").textContent).toBe("th")
-    expect(screen.getByTestId("firstName").textContent).toBe(ME.profile.firstName)
+    expect(screen.getByTestId("locale").textContent).toBe("en")
+    expect(screen.getByTestId("firstName").textContent).toBe(ME_EN.profile.firstName)
   })
 })

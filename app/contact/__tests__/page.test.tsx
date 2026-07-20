@@ -63,7 +63,9 @@ describe("Contact Page", () => {
 
     const downloadLink = pdfEl.querySelector("a");
     expect(downloadLink).not.toBeNull();
-    expect(downloadLink!.getAttribute("href")).toBe("/resume-pakorn.pdf");
+    // Site default locale is English (no LocaleProvider ancestor here, so
+    // ContactPage falls back to DEFAULT_LOCALE), so the English CV PDF wins.
+    expect(downloadLink!.getAttribute("href")).toBe("/resume-pakorn-en.pdf");
     expect(downloadLink!.hasAttribute("download")).toBe(true);
   });
 });
