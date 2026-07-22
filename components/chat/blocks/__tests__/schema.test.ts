@@ -570,6 +570,88 @@ describe('parseBlock — radar 2-series cap (correctness rule, not arbitrary)', 
 })
 
 // ──────────────────────────────────────────
+//  Alias fences — resume-bar / resume-level / resume-timeline / resume-radar
+//  are accepted as fallback aliases for resume-chart (production failure:
+//  the model emitted ` ```resume-level ` instead of ` ```resume-chart ` with
+//  `"kind":"level"`).
+// ──────────────────────────────────────────
+
+describe('parseBlock — alias fences (resume-bar/level/timeline/radar)', () => {
+  it('an alias fence with a payload that omits `kind` parses as the kind implied by the fence name', () => {
+    const raw = JSON.stringify({
+      title: 'Technical Skill Proficiency',
+      items: [{ label: 'JavaScript', value: 90 }],
+    })
+    const result = parseBlock('resume-level', raw)
+    expect(result).toEqual({
+      kind: 'chart',
+      data: {
+        kind: 'level',
+        title: 'Technical Skill Proficiency',
+        items: [{ label: 'JavaScript', value: 90 }],
+      },
+    })
+  })
+
+  it('an alias fence whose payload has a conflicting explicit `kind` resolves to the payload kind, not the fence alias', () => {
+    const raw = JSON.stringify({
+      kind: 'bar',
+      series: [{ label: 'A', value: 5 }],
+    })
+    // Fence says "level", payload says "bar" — payload wins.
+    const result = parseBlock('resume-level', raw)
+    expect(result).toEqual({
+      kind: 'chart',
+      data: { kind: 'bar', series: [{ label: 'A', value: 5 }] },
+    })
+  })
+
+  it('an alias fence with an otherwise-invalid payload still returns null', () => {
+    // `resume-level` implies kind "level", but the value is out of the 0-100
+    // range — injecting `kind` does not rescue an invalid payload.
+    const raw = JSON.stringify({ items: [{ label: 'A', value: 101 }] })
+    expect(parseBlock('resume-level', raw)).toBeNull()
+  })
+
+  it('resume-bar/timeline/radar aliases all inject their respective kind when omitted', () => {
+    const barRaw = JSON.stringify({ series: [{ label: 'A', value: 3 }] })
+    expect(parseBlock('resume-bar', barRaw)).toEqual({
+      kind: 'chart',
+      data: { kind: 'bar', series: [{ label: 'A', value: 3 }] },
+    })
+
+    const timelineRaw = JSON.stringify({
+      items: [{ label: 'A', start: '2020-01', end: 'present' }],
+    })
+    expect(parseBlock('resume-timeline', timelineRaw)).toEqual({
+      kind: 'chart',
+      data: { kind: 'timeline', items: [{ label: 'A', start: '2020-01', end: 'present' }] },
+    })
+
+    const radarRaw = JSON.stringify({
+      axes: ['a', 'b', 'c'],
+      series: [{ label: 'S1', values: [10, 20, 30] }],
+    })
+    expect(parseBlock('resume-radar', radarRaw)).toEqual({
+      kind: 'chart',
+      data: {
+        kind: 'radar',
+        axes: ['a', 'b', 'c'],
+        series: [{ label: 'S1', values: [10, 20, 30] }],
+      },
+    })
+  })
+
+  it('a genuinely unknown fence (e.g. resume-pie) still returns null', () => {
+    const raw = JSON.stringify({
+      title: 'Technical Skill Proficiency',
+      items: [{ label: 'JavaScript', value: 90 }],
+    })
+    expect(parseBlock('resume-pie', raw)).toBeNull()
+  })
+})
+
+// ──────────────────────────────────────────
 //  Property test — parseBlock must NEVER throw, for any lang/input
 // ──────────────────────────────────────────
 

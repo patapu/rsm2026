@@ -93,6 +93,33 @@ describe('rich chat blocks through the real markdown pipeline', () => {
     },
   )
 
+  it('regression: the exact production failure payload (```resume-level fence, no `kind` field) now renders a chart <svg>, not a <pre>', () => {
+    // The production bug: the model emitted ```resume-level (an invented
+    // fence name, not one of the three real fences) with a payload that
+    // omitted `kind` entirely — otherwise a perfectly valid level chart.
+    // The renderer only recognised resume-description/table/chart, so this
+    // fell through to a raw code block and the user saw JSON instead of a
+    // chart. `resume-level` is now accepted as an alias for `resume-chart`
+    // with `kind: "level"` injected when absent (schema.ts).
+    const md = fence(
+      'resume-level',
+      JSON.stringify({
+        title: 'Technical Skill Proficiency',
+        items: [
+          { label: 'JavaScript', value: 90 },
+          { label: 'React', value: 90 },
+          { label: 'Next.js', value: 85 },
+        ],
+      }),
+    )
+    const { container } = render(
+      <ReactMarkdown components={markdownComponents}>{md}</ReactMarkdown>,
+    )
+    const svg = container.querySelector('svg[role="img"]')
+    expect(svg).not.toBeNull()
+    expect(container.querySelector('pre')).toBeNull()
+  })
+
   it('a malformed resume-table payload falls back to a <pre> code block and does not throw', () => {
     const md = fence('resume-table', '{not valid json,,,')
     expect(() =>

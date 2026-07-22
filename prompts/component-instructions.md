@@ -21,6 +21,41 @@ schema ระบบจะ fallback ไปแสดงเป็น raw code block
 ของ field name / ชนิดข้อมูล / ขอบเขตตัวเลข สำคัญมาก — **ห้ามเดา field name เอง ให้ใช้ตามนี้
 เป๊ะๆ**
 
+## ชื่อ fence ต้องตรงเป๊ะ — ห้ามเดาใหม่ (ข้อผิดพลาดที่เคยเกิดขึ้นจริง)
+
+ชื่อ fence (info string) มีได้แค่ **3 ค่านี้เท่านั้น**: `resume-description`, `resume-table`,
+`resume-chart` — **ไม่มี** fence ชื่อ `resume-level`, `resume-bar`, `resume-timeline`,
+`resume-radar`, `resume-json` หรือชื่ออื่นใดทั้งสิ้น อย่าแต่งชื่อ fence เองตามหัวข้อย่อยที่เห็น
+ด้านล่าง (เช่น "### 3.2 `kind: "level"`") — หัวข้อย่อยพวกนั้นแค่จัดกลุ่มให้อ่านง่ายเฉยๆ ไม่ใช่ชื่อ
+fence ที่ใช้ได้จริง
+
+**ชนิดของกราฟ (`kind`) อยู่ใน field `"kind"` ภายใน JSON เท่านั้น ไม่เคยอยู่ในชื่อ fence** — ทุก
+`resume-chart` ต้องมี `"kind"` เป็น field แรกในเนื้อ JSON เสมอ เป็นค่าใดค่าหนึ่งจาก `"bar"` /
+`"level"` / `"timeline"` / `"radar"`
+
+ตัวอย่างข้อผิดพลาดจริงที่เคยเกิดขึ้น (ตอบคำถาม "แสดงทักษะเป็นกราฟ" แล้ว user เห็น JSON ดิบแทนที่จะ
+เห็นกราฟ เพราะระบบไม่รู้จัก fence ที่แต่งขึ้นเอง):
+
+❌ **ผิด** — เดาใช้ `resume-level` เป็นชื่อ fence เอง (ไม่มี fence นี้อยู่จริง ระบบไม่รู้จัก จึงตกไป
+แสดงเป็น raw code block ให้ user เห็น JSON ดิบ):
+````
+```resume-level
+{"title":"Technical Skill Proficiency","items":[{"label":"JavaScript","value":90}]}
+```
+````
+
+✅ **ถูก** — ใช้ fence `resume-chart` เสมอ แล้วใส่ `"kind":"level"` ไว้เป็น field แรกในเนื้อ JSON:
+````
+```resume-chart
+{"kind":"level","title":"Technical Skill Proficiency","items":[{"label":"JavaScript","value":90}]}
+```
+````
+
+**หมายเหตุ**: บล็อก `Shape:` ที่ขึ้นต้นแต่ละหัวข้อด้านล่างเป็นแค่ผัง โครงสร้าง (blueprint) เขียน
+ด้วย fence ` ```json ` เพราะมี placeholder อย่าง `"string"`, `"number (0-100)"` ปนอยู่ ซึ่งไม่ใช่
+JSON ที่ valid จริง — **ห้าม copy ไปแปะตรงๆ** ส่วนที่ copy ไปใช้ได้จริงคือย่อหน้า "ตัวอย่างจริง" ที่
+อยู่ใน fence `resume-*` จริงเสมอ
+
 ---
 
 ## 1) `resume-description` — term → detail pairs
@@ -39,7 +74,7 @@ Shape:
 - `items` ต้องมีอย่างน้อย 1 รายการ อย่างมาก 12 รายการ
 
 ตัวอย่างจริง (สรุป tech stack ที่ใช้บ่อย):
-```json
+```resume-description
 {
   "title": "Tech Stack หลัก",
   "items": [
@@ -69,7 +104,7 @@ Shape:
   (ทุก cell เป็น string แม้จะเป็นตัวเลขก็ใส่เป็น string)
 
 ตัวอย่างจริง (ประสบการณ์ทำงาน):
-```json
+```resume-table
 {
   "title": "ประสบการณ์ทำงาน",
   "columns": ["บริษัท", "ตำแหน่ง", "ช่วงเวลา", "ทีม"],
@@ -102,7 +137,7 @@ Shape:
 - `series`: อย่างน้อย 1 อย่างมาก 12 รายการ, `value` เป็นตัวเลขจริง (finite)
 
 ตัวอย่างจริง (ความถี่กิจกรรมต่อสัปดาห์ จาก `me.hobbies`):
-```json
+```resume-chart
 {
   "kind": "bar",
   "title": "ความถี่กิจกรรมต่อสัปดาห์",
@@ -135,7 +170,7 @@ Shape:
 - ใช้กับข้อมูล `skills.*.level` ที่มีอยู่แล้ว (0-100) — **ห้ามคิดเลขเอง ใช้ค่า level ตรงๆ**
 
 ตัวอย่างจริง (จาก `me.skills.languages` / `frameworks` / `databases` / `devops`):
-```json
+```resume-chart
 {
   "kind": "level",
   "title": "ระดับความชำนาญด้านเทคนิค",
@@ -173,7 +208,7 @@ Shape:
   เช่น `"2019"`, ห้ามใช้วันที่เต็ม)
 
 ตัวอย่างจริง (จาก `me.experience` — MSC roles + CDG):
-```json
+```resume-chart
 {
   "kind": "timeline",
   "title": "เส้นทางอาชีพ",
@@ -203,7 +238,7 @@ Shape:
   0-100
 
 ตัวอย่างจริง (ภาพรวมทักษะหลัก — ใช้ค่า `level` จริงจาก `me.skills` โดยตรง ไม่ได้คำนวณเฉลี่ยเอง):
-```json
+```resume-chart
 {
   "kind": "radar",
   "title": "ภาพรวมทักษะหลัก",

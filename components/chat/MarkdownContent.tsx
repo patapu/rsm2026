@@ -10,8 +10,16 @@ import ChartBlock from './blocks/ChartBlock'
  * Fence languages that carry a rich chat block as JSON (see
  * `components/chat/blocks/schema.ts`). Matched against a `code` element's
  * `language-xxx` className.
+ *
+ * `resume-bar` / `resume-level` / `resume-timeline` / `resume-radar` are
+ * accepted as ALIASES for `resume-chart` — defence-in-depth for an observed
+ * production failure where the model invented a fence name from a chart's
+ * `kind` (e.g. ` ```resume-level `) instead of emitting the real
+ * `resume-chart` fence with `"kind"` inside the JSON. `parseBlock` in
+ * schema.ts derives/injects the `kind` from the alias when the payload omits
+ * it; the payload's own explicit `kind` field always wins if present.
  */
-const RESUME_BLOCK_LANG_RE = /language-(resume-(?:description|table|chart))(?=\s|$)/
+const RESUME_BLOCK_LANG_RE = /language-(resume-(?:description|table|chart|bar|level|timeline|radar))(?=\s|$)/
 
 /** Flattens a `code` element's `children` (string, or array of strings) back into raw text. Never throws — anything else collapses to `''`. */
 function childrenToRawText(children: React.ReactNode): string {

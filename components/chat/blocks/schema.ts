@@ -8,6 +8,9 @@
  * blocks as JSON inside fenced code blocks with a `resume-description` /
  * `resume-table` / `resume-chart` info string — see
  * `components/chat/MarkdownContent.tsx`, which intercepts those fences.
+ * `resume-bar` / `resume-level` / `resume-timeline` / `resume-radar` are
+ * also accepted as aliases for `resume-chart` (see `CHART_KIND_ALIASES`
+ * below) — defence-in-depth for a model that gets the fence name wrong.
  *
  * Parsing here is best-effort by design: a malformed AI payload (bad JSON,
  * a schema violation, mismatched row/axis lengths) must never throw during
@@ -188,6 +191,41 @@ export const ChartBlockSchema = z.discriminatedUnion('kind', [
 export type ChartBlockData = z.infer<typeof ChartBlockSchema>
 
 // ──────────────────────────────────────────
+//  Alias fences — defence-in-depth for an LLM that invents a fence name
+//  from a chart's `kind` instead of emitting the real `resume-chart` fence
+//  (observed in production: ` ```resume-level ` with no `kind` field at all,
+//  otherwise a perfectly valid level chart). Maps each alias fence language
+//  to the `kind` it implies. See `parseBlock` below for how this is used —
+//  the alias is only ever a FALLBACK HINT: if the payload supplies its own
+//  `kind`, the payload wins.
+// ──────────────────────────────────────────
+
+const CHART_KIND_ALIASES: Record<string, ChartBlockData['kind']> = {
+  'resume-bar': 'bar',
+  'resume-level': 'level',
+  'resume-timeline': 'timeline',
+  'resume-radar': 'radar',
+}
+
+/**
+ * Injects `kind: aliasKind` into `json` when `json` is a plain object that
+ * omits `kind` entirely. Leaves `json` untouched in every other case —
+ * non-objects fall through unchanged (and fail schema validation as before),
+ * and an object that already specifies `kind` is never overwritten: the
+ * payload's explicit `kind` is the more specific, deliberate signal and the
+ * fence name is only a fallback hint when it's missing.
+ */
+function withInferredChartKind(
+  json: unknown,
+  aliasKind: ChartBlockData['kind'] | undefined,
+): unknown {
+  if (!aliasKind) return json
+  if (typeof json !== 'object' || json === null || Array.isArray(json)) return json
+  if ('kind' in json) return json
+  return { ...json, kind: aliasKind }
+}
+
+// ──────────────────────────────────────────
 //  parseBlock — safe JSON.parse + Zod safeParse, never throws
 // ──────────────────────────────────────────
 
@@ -220,8 +258,9 @@ export function parseBlock(lang: string, raw: string): ParsedBlock | null {
     const result = TableBlockSchema.safeParse(json)
     return result.success ? { kind: 'table', data: result.data } : null
   }
-  if (lang === 'resume-chart') {
-    const result = ChartBlockSchema.safeParse(json)
+  if (lang === 'resume-chart' || lang in CHART_KIND_ALIASES) {
+    const payload = withInferredChartKind(json, CHART_KIND_ALIASES[lang])
+    const result = ChartBlockSchema.safeParse(payload)
     return result.success ? { kind: 'chart', data: result.data } : null
   }
   return null
