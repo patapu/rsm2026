@@ -106,6 +106,8 @@ const en = {
   'chat.typingAriaLabel': 'Typing',
   'chat.inputPlaceholder': 'Type a message...',
   'chat.sendButton': 'Send',
+
+  'chat.blocks.timelinePresent': 'Present',
 } as const
 
 export type MessageKey = keyof typeof en
@@ -161,6 +163,8 @@ const th: Record<MessageKey, string> = {
   'chat.typingAriaLabel': 'กำลังพิมพ์',
   'chat.inputPlaceholder': 'พิมพ์ข้อความ...',
   'chat.sendButton': 'ส่ง',
+
+  'chat.blocks.timelinePresent': 'ปัจจุบัน',
 }
 
 export const messages: Record<Locale, Record<MessageKey, string>> = { en, th }

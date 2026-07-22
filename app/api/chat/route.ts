@@ -53,13 +53,40 @@ function getBaseSystemPrompt(): string {
   return cachedBaseSystemPrompt
 }
 
+// Rich chat block (resume-description / resume-table / resume-chart)
+// instructions live in their own file, kept separate from the main persona
+// prompt so it stays a manageable size. Same disk-read + module-level cache
+// pattern as `getBaseSystemPrompt` above — including the multi-path fallback
+// for the Docker image's different cwd — and a missing file falls back to
+// `''` rather than throwing, so chat still works if it's absent.
+let cachedComponentInstructions: string | null = null
+
+function getComponentInstructions(): string {
+  if (cachedComponentInstructions === null) {
+    const paths = [
+      join(process.cwd(), 'prompts/component-instructions.md'),
+      join(process.cwd(), '../prompts/component-instructions.md'),
+    ]
+    for (const p of paths) {
+      try {
+        cachedComponentInstructions = readFileSync(p, 'utf-8')
+        break
+      } catch {
+        // try next path
+      }
+    }
+    if (cachedComponentInstructions === null) cachedComponentInstructions = ''
+  }
+  return cachedComponentInstructions
+}
+
 const LOCALE_DIRECTIVE: Record<Locale, string> = {
   en: '\n\nRespond in English regardless of the language of the question.',
   th: '\n\nตอบเป็นภาษาไทยเสมอ ไม่ว่าคำถามจะเป็นภาษาอะไร',
 }
 
 export function getSystemPrompt(locale: Locale = DEFAULT_LOCALE): string {
-  return getBaseSystemPrompt() + LOCALE_DIRECTIVE[locale]
+  return getBaseSystemPrompt() + '\n\n' + getComponentInstructions() + LOCALE_DIRECTIVE[locale]
 }
 
 // ──────────────────────────────────────────
@@ -258,15 +285,9 @@ export async function POST(req: NextRequest) {
         },
       }),
     })
-    console.log({
-      n8nRes,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(process.env.N8N_WEBHOOK_AUTH_NAME && process.env.N8N_WEBHOOK_AUTH
-          ? { [process.env.N8N_WEBHOOK_AUTH_NAME]: process.env.N8N_WEBHOOK_AUTH }
-          : {}),
-      },
-    })
+    // Never log the auth header itself — it carries N8N_WEBHOOK_AUTH in
+    // plaintext, and this runs on every request. Status is what's diagnostic.
+    console.log({ n8nStatus: n8nRes.status, authHeaderSent: Boolean(process.env.N8N_WEBHOOK_AUTH) })
     if (!n8nRes.ok) {
       throw new Error(`n8n returned ${n8nRes.status}`)
     }
