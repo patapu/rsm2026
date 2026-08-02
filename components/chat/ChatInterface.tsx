@@ -4,8 +4,16 @@ import { Input, Button } from '@heroui/react'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import ChatMessage, { type ChatMessageData } from './ChatMessage'
+import { readSSE } from './sse'
 import { useLocale } from '@/components/i18n/LocaleProvider'
 import { DEFAULT_LOCALE, translate, type Locale } from '@/lib/i18n'
+
+/**
+ * Minimum gap between re-renders while a reply streams in. Model deltas can
+ * land faster than Markdown can be re-parsed; coalescing them keeps the reveal
+ * smooth without noticeably lagging behind the text.
+ */
+const STREAM_FLUSH_MS = 50
 
 /**
  * Maps an HTTP error status code to a user-facing error message.
@@ -52,15 +60,22 @@ async function ensureFingerprint(): Promise<void> {
 /**
  * Single POST /api/chat call. Shared between the first attempt and the
  * post-401 retry so they can't drift apart.
+ *
+ * `Accept: text/event-stream` opts into the streaming reply. The route falls
+ * back to its original JSON response when the header is absent, and the caller
+ * falls back to reading JSON when the response is not actually a stream — so a
+ * buffering proxy degrades to the old behaviour instead of breaking.
  */
-function postChat(message: string, locale: Locale): Promise<Response> {
+function postChat(message: string, locale: Locale, signal?: AbortSignal): Promise<Response> {
   return fetch('/api/chat', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'x-chat-session': getChatSessionId(),
+      Accept: 'text/event-stream',
     },
     body: JSON.stringify({ message, locale }),
+    signal,
   })
 }
 
@@ -77,12 +92,21 @@ export default function ChatInterface() {
   // Indices of assistant messages that have already finished typewriter reveal
   // (or were loaded from history and should render instantly).
   const [typedIndices, setTypedIndices] = useState<Set<number>>(new Set())
+  // Index of the assistant message whose text is still arriving over SSE.
+  const [streamingIndex, setStreamingIndex] = useState<number | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  // Mirror isLoading into a ref so `sendMessage` can check it without needing
-  // to be recreated whenever isLoading changes.
-  const isLoadingRef = useRef(false)
-  isLoadingRef.current = isLoading
+  // Aborts the in-flight request on unmount (and gives a future Stop button
+  // something to call) so the stream reader can't outlive the component.
+  const abortRef = useRef<AbortController | null>(null)
+
+  // "Busy" spans the whole turn: waiting for the first byte AND streaming the
+  // reply. A second send during either would clobber the message being written.
+  const isBusy = isLoading || streamingIndex !== null
+  // Mirror it into a ref so `sendMessage` can check it without needing to be
+  // recreated whenever the busy state changes.
+  const isBusyRef = useRef(false)
+  isBusyRef.current = isBusy
 
   // Auto-scroll to bottom when messages change.
   useEffect(() => {
@@ -124,8 +148,12 @@ export default function ChatInterface() {
     }
   }, [])
 
+  // Tear down any in-flight stream when the component goes away, so its reader
+  // (and the setState calls behind it) can't outlive the mount.
+  useEffect(() => () => abortRef.current?.abort(), [])
+
   const sendMessage = useCallback(async (messageText: string) => {
-    if (!messageText.trim() || isLoadingRef.current) return
+    if (!messageText.trim() || isBusyRef.current) return
 
     const userMessage: ChatMessageData = {
       role: 'user',
@@ -142,13 +170,16 @@ export default function ChatInterface() {
     setError(null)
     setIsLoading(true)
 
+    const controller = new AbortController()
+    abortRef.current = controller
+
     try {
-      let response = await postChat(userMessage.content, locale)
+      let response = await postChat(userMessage.content, locale, controller.signal)
 
       // If the fingerprint cookie expired, refresh and retry once.
       if (response.status === 401) {
         await ensureFingerprint()
-        response = await postChat(userMessage.content, locale)
+        response = await postChat(userMessage.content, locale, controller.signal)
       }
 
       if (!response.ok) {
@@ -157,12 +188,85 @@ export default function ChatInterface() {
         return
       }
 
-      const data = await response.json()
-      setMessages((prev) => [...prev, { role: 'assistant', content: data.reply }])
-    } catch {
-      setError(t('chat.errorConnection'))
+      const contentType = response.headers?.get?.('content-type') ?? ''
+      if (!response.body || !contentType.includes('text/event-stream')) {
+        // Not a stream — the original JSON contract. Reached when the server
+        // declines to stream, or a proxy buffered the response into one blob.
+        // The reply is NOT marked as typed, so GlitchReveal still plays.
+        const data = await response.json()
+        setMessages((prev) => [...prev, { role: 'assistant', content: data.reply }])
+        return
+      }
+
+      // ── Streaming reply ──────────────────────────────────────────────
+      // The assistant bubble is only created once the FIRST delta lands, so the
+      // typing dots stay up during the tool round-trip instead of an empty
+      // bubble appearing immediately.
+      let text = ''
+      let started = false
+      let lastFlush = 0
+      let failed = false
+
+      const flush = () => {
+        const content = text
+        if (!started) {
+          started = true
+          setIsLoading(false)
+          setMessages((prev) => {
+            const index = prev.length
+            // The stream itself is the reveal — mark the index typed so
+            // GlitchReveal never re-plays it once the stream finishes.
+            setTypedIndices((ti) => new Set(ti).add(index))
+            setStreamingIndex(index)
+            return [...prev, { role: 'assistant', content }]
+          })
+        } else {
+          setMessages((prev) =>
+            prev.map((m, i) => (i === prev.length - 1 ? { ...m, content } : m)),
+          )
+        }
+      }
+
+      for await (const event of readSSE(response.body)) {
+        const payload = event.data as { text?: string; error?: string } | undefined
+
+        if (event.event === 'chunk') {
+          text += payload?.text ?? ''
+          const now = Date.now()
+          if (!started || now - lastFlush >= STREAM_FLUSH_MS) {
+            lastFlush = now
+            flush()
+          }
+        } else if (event.event === 'done') {
+          // The server sends the whole reply again so a dropped delta cannot
+          // leave the bubble permanently truncated.
+          if (typeof payload?.text === 'string' && payload.text.length >= text.length) {
+            text = payload.text
+          }
+          if (text) flush()
+        } else if (event.event === 'error') {
+          failed = true
+          break
+        }
+      }
+
+      if (failed || !started) {
+        // Nothing usable arrived, or the server reported a mid-stream failure.
+        setError(t('chat.errorGeneric'))
+      } else {
+        // Final flush — the last delta is coalesced away by the throttle if the
+        // stream ends without a `done` event (e.g. the server closed early).
+        flush()
+      }
+    } catch (err) {
+      // An abort is a deliberate teardown, not a connection failure.
+      if ((err as Error)?.name !== 'AbortError') {
+        setError(t('chat.errorConnection'))
+      }
     } finally {
+      abortRef.current = null
       setIsLoading(false)
+      setStreamingIndex(null)
     }
   }, [locale, t])
 
@@ -175,12 +279,14 @@ export default function ChatInterface() {
 
   // Empty-state is only shown once history has loaded — otherwise returning
   // users see a flash of the empty prompt before their previous messages render.
-  const showEmptyState = isHistoryLoaded && messages.length === 0 && !isLoading
+  const showEmptyState = isHistoryLoaded && messages.length === 0 && !isBusy
 
   return (
     <div className="flex flex-col h-[calc(100vh-64px)]" data-testid="chat-interface">
-      {/* Messages area */}
-      <div className="flex-1 overflow-y-auto" aria-live="polite">
+      {/* Messages area. `aria-busy` while a reply is arriving holds back the
+          live region until the reply is complete — otherwise a screen reader
+          would re-announce the message on every streamed delta. */}
+      <div className="flex-1 overflow-y-auto" aria-live="polite" aria-busy={isBusy}>
         <div className="max-w-3xl mx-auto px-4 py-6">
           {showEmptyState && (
             <div className="flex flex-col items-center justify-center h-full min-h-[60vh] text-center">
@@ -216,6 +322,7 @@ export default function ChatInterface() {
                 <ChatMessage
                   message={msg}
                   isStreaming={msg.role === 'assistant' && !typedIndices.has(i)}
+                  isPending={i === streamingIndex}
                   onDoneStreaming={() =>
                     setTypedIndices((prev) => {
                       if (prev.has(i)) return prev
@@ -273,7 +380,7 @@ export default function ChatInterface() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={t('chat.inputPlaceholder')}
-            disabled={isLoading}
+            disabled={isBusy}
             className="flex-1 border border-[rgba(255,0,255,0.3)] focus:border-[#00FFFF] focus:shadow-[0_0_10px_rgba(0,255,255,0.3)]"
             variant="secondary"
             fullWidth
@@ -283,7 +390,7 @@ export default function ChatInterface() {
           <Button
             variant="primary"
             onPress={() => sendMessage(input)}
-            isDisabled={isLoading || !input.trim()}
+            isDisabled={isBusy || !input.trim()}
             size="lg"
             data-testid="chat-send"
           >

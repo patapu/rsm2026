@@ -52,6 +52,14 @@ vi.mock('@/lib/redis', () => ({
 // used to be sent to n8n as `instructions`).
 vi.mock('ai', () => ({
   generateText: vi.fn(async () => ({ text: 'ok', steps: [] })),
+  // Only imported by the route's SSE path, which these locale tests never take
+  // (they send no `Accept: text/event-stream`). Present so the mocked module
+  // still satisfies the route's import list.
+  streamText: vi.fn(() => ({
+    textStream: (async function* () {
+      yield 'ok'
+    })(),
+  })),
   tool: (def: unknown) => def,
   stepCountIs: (n: number) => n,
   embed: vi.fn(),

@@ -7,7 +7,7 @@ export const runtime = 'nodejs'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { generateText, tool, stepCountIs } from 'ai'
+import { generateText, streamText, tool, stepCountIs } from 'ai'
 import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { verifyToken } from '@/lib/verify-token'
 import { redis, keys } from '@/lib/redis'
@@ -153,6 +153,223 @@ function isOriginAllowed(origin: string | null): boolean {
 }
 
 // ──────────────────────────────────────────
+//  Agent call options
+// ──────────────────────────────────────────
+
+/**
+ * Builds the ONE options object handed to the model.
+ *
+ * Both reply paths use it — `generateText` for the JSON response and
+ * `streamText` for the SSE response — so the model, system prompt, retrieval
+ * tool and multi-step stop condition cannot drift apart between them.
+ */
+function buildAgentOptions(opts: {
+  systemPrompt: string
+  meData: ReturnType<typeof getMeForLocale>
+  userMemory: string[]
+  message: string
+}) {
+  const { systemPrompt, meData, userMemory, message } = opts
+
+  // Small, always-needed facts (for greetings + PDF links + "who are you")
+  // stay in the prompt — cheap and needed almost every turn. The large,
+  // query-dependent material (experience/projects/skills detail) is fetched on
+  // demand via searchResume. Teaching point: not everything should be RAG —
+  // only the big searchable corpus is; tiny always-needed facts stay inline.
+  const alwaysOn = [
+    `พื้นฐาน: ${meData.profile.firstNameTH} ${meData.profile.lastNameTH} (${meData.profile.nickname}), ${meData.profile.title}. ${meData.profile.tagline}`,
+    `ประสบการณ์รวม ${meData.summary.yearsOfExperience}+ ปี. ${meData.summary.bio}`,
+    `ติดต่อ: ${meData.contact.email}, ${meData.contact.phone}. ลิงก์เรซูเม่ PDF: ${meData.cta.resumePdfUrl}`,
+  ].join('\n')
+
+  // userMemory = topics already asked this session. Empty ⇒ new session ⇒ the
+  // system prompt's greeting behavior kicks in. Preserved from the n8n design.
+  const memoryContext = userMemory.length
+    ? `[หัวข้อที่ผู้ใช้เคยถามในเซสชันนี้]: ${userMemory.join(', ')}`
+    : `[เซสชันใหม่ — ยังไม่มีหัวข้อที่เคยถาม ให้แนะนำตัวตามที่ระบบกำหนด]`
+
+  // Explicit provider (reads the key Next loads from .env.local). gemini-2.5-flash
+  // supports tool calling and is fast enough for an interactive chat.
+  const model = createGoogleGenerativeAI({
+    apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+  })('gemini-flash-latest')
+
+  return {
+    model,
+    system: `${systemPrompt}\n\n[ข้อมูลที่มีอยู่เสมอ]\n${alwaysOn}\n\n${memoryContext}`,
+    prompt: message,
+    tools: {
+      searchResume: tool({
+        description:
+          'ค้นหาข้อมูลเชิงลึกใน resume ของปกร — ประสบการณ์ทำงาน โปรเจกต์ ทักษะ การศึกษา. เรียกใช้เมื่อผู้ใช้ถามรายละเอียดที่ไม่มีในข้อมูลพื้นฐาน.',
+        inputSchema: z.object({
+          query: z
+            .string()
+            .describe('คำค้นภาษาไทยหรืออังกฤษ เช่น "ประสบการณ์ CRM", "โปรเจกต์ Next.js", "ทักษะ DevOps"'),
+        }),
+        execute: async ({ query }) => {
+          const chunks = await retrieveChunks(query, 5)
+          return chunks.map((c) => ({ title: c.title, content: c.content }))
+        },
+      }),
+    },
+    // Let the model call the tool, read the retrieved chunks, then compose the
+    // final answer. Without a multi-step stop condition, the call would halt
+    // right after the first tool call and never produce the reply text.
+    stopWhen: stepCountIs(5),
+  }
+}
+
+// ──────────────────────────────────────────
+//  Turn persistence (shared by both reply paths)
+// ──────────────────────────────────────────
+
+/**
+ * Writes the finished turn to Redis: keyword memory first, then the bounded
+ * history list. Extracted so the streaming path stores exactly what the
+ * non-streaming path stores.
+ */
+async function persistTurn(opts: {
+  message: string
+  reply: string
+  memoryKey: string
+  userMemory: string[]
+  historyKey: string
+}): Promise<void> {
+  const { message, reply, memoryKey, userMemory, historyKey } = opts
+
+  // Memory: the agent doesn't emit a userMemory array (unlike the old n8n
+  // contract), so we always fall back to keyword auto-extraction from the
+  // user's message — the same KEYWORD_MAP path used before.
+  const keyword = extractKeyword(message)
+  if (keyword && !userMemory.includes(keyword)) {
+    const updatedMemory = [...userMemory, keyword].slice(-20)
+    await redis.set(memoryKey, JSON.stringify(updatedMemory), 'EX', 604800)
+  }
+
+  // History (max 20, TTL 24h — matches session TTL)
+  const userMsg = JSON.stringify({ role: 'user', content: message, timestamp: Date.now() })
+  const aiMsg = JSON.stringify({ role: 'assistant', content: reply, timestamp: Date.now() })
+
+  await redis.rpush(historyKey, userMsg, aiMsg)
+  await redis.ltrim(historyKey, -20, -1)
+  await redis.expire(historyKey, 86400)
+}
+
+// ──────────────────────────────────────────
+//  SSE streaming reply
+// ──────────────────────────────────────────
+
+const encoder = new TextEncoder()
+
+/**
+ * Serialises one SSE frame. The payload is JSON-encoded, which is what makes
+ * streaming Markdown safe: `JSON.stringify` escapes the newlines that would
+ * otherwise terminate the frame in the middle of a reply.
+ */
+function sseFrame(event: 'chunk' | 'done' | 'error', data: unknown): Uint8Array {
+  return encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
+}
+
+/**
+ * Streams the agent's reply as `text/event-stream`.
+ *
+ * Auth, rate limiting and validation all run BEFORE this is called, because
+ * once the first byte is written the status code is committed to 200 and can no
+ * longer be changed (see `next/dist/docs/01-app/02-guides/streaming.md` →
+ * "The HTTP contract"). Failures after that point are reported as an `error`
+ * event inside the stream instead.
+ *
+ * A bare Web `Response` is used rather than `NextResponse` — the latter does
+ * not carry a streaming body.
+ */
+function streamReply(opts: {
+  agentOptions: ReturnType<typeof buildAgentOptions>
+  message: string
+  memoryKey: string
+  userMemory: string[]
+  historyKey: string
+  cors: Record<string, string>
+  signal: AbortSignal
+}): Response {
+  const { agentOptions, message, memoryKey, userMemory, historyKey, cors, signal } = opts
+
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      let full = ''
+      let closed = false
+
+      const send = (event: 'chunk' | 'done' | 'error', data: unknown) => {
+        if (closed) return
+        try {
+          controller.enqueue(sseFrame(event, data))
+        } catch {
+          // Client went away between the check and the enqueue.
+          closed = true
+        }
+      }
+
+      // Flush headers immediately. The first text delta can be several seconds
+      // out (the model calls searchResume, which embeds + queries pgvector
+      // first), and an idle connection can be dropped by an intermediary.
+      try {
+        controller.enqueue(encoder.encode(': open\n\n'))
+      } catch {
+        closed = true
+      }
+
+      try {
+        const result = streamText({ ...agentOptions, abortSignal: signal })
+
+        // textStream yields only the text deltas, across every step — the tool
+        // round-trip happens transparently before the first delta appears.
+        for await (const delta of result.textStream) {
+          full += delta
+          send('chunk', { text: delta })
+        }
+
+        await persistTurn({ message, reply: full, memoryKey, userMemory, historyKey })
+        send('done', { text: full })
+      } catch (error) {
+        console.error(error)
+        // Persist whatever was produced so the saved history matches what the
+        // visitor actually saw (including a reply cut short by Stop/navigation).
+        if (full) {
+          try {
+            await persistTurn({ message, reply: full, memoryKey, userMemory, historyKey })
+          } catch (persistError) {
+            console.error(persistError)
+          }
+        }
+        // On an abort the client is already gone; an error frame would only be
+        // written into a dead socket.
+        if (!signal.aborted) send('error', { error: 'Service unavailable' })
+      } finally {
+        closed = true
+        try {
+          controller.close()
+        } catch {
+          // Already closed by a client disconnect.
+        }
+      }
+    },
+  })
+
+  return new Response(stream, {
+    headers: {
+      ...cors,
+      'Content-Type': 'text/event-stream',
+      // `no-transform` is not decoration: Next's own gzip layer
+      // (next/dist/compiled/compression) skips any response whose Cache-Control
+      // carries it. Without it the deltas sit in zlib's buffer and the reply
+      // still lands in one lump — the exact problem this endpoint exists to fix.
+      'Cache-Control': 'no-cache, no-transform',
+      'X-Accel-Buffering': 'no', // critical for nginx/Cloudflare
+    },
+  })
+}
+
+// ──────────────────────────────────────────
 //  POST /api/chat
 // ──────────────────────────────────────────
 
@@ -248,59 +465,33 @@ export async function POST(req: NextRequest) {
   const systemPrompt = getSystemPrompt(locale)
   console.log({ instructionsLength: systemPrompt.length, hasInstructions: systemPrompt.length > 0 })
 
-  // 7. Generate the reply with a RAG tool-calling agent (Vercel AI SDK).
+  // 7. Build the RAG tool-calling agent call (Vercel AI SDK).
   //    Replaces the old "POST the entire ME object to n8n" design. The model no
   //    longer receives the whole resume up front — it RETRIEVES only the chunks
   //    it needs via the searchResume tool. This is the agent + RAG payoff.
+  const historyKey = keys.history(visitorId, chatSessionId)
+  const agentOptions = buildAgentOptions({ systemPrompt, meData, userMemory, message })
+
+  // 7b. Streaming path — opt-in via `Accept: text/event-stream`. Everything that
+  //     can return a real HTTP status (auth, rate limit, validation) has already
+  //     run, so it is safe to commit to 200 and start writing the body.
+  if ((req.headers.get('accept') ?? '').includes('text/event-stream')) {
+    return streamReply({
+      agentOptions,
+      message,
+      memoryKey,
+      userMemory,
+      historyKey,
+      cors,
+      signal: req.signal,
+    })
+  }
+
+  // 7c. Non-streaming path — the original JSON contract, kept for clients that
+  //     do not ask for a stream (and as the fallback when a proxy strips SSE).
   let reply: string
   try {
-    // Small, always-needed facts (for greetings + PDF links + "who are you")
-    // stay in the prompt — cheap and needed almost every turn. The large,
-    // query-dependent material (experience/projects/skills detail) is fetched on
-    // demand via searchResume. Teaching point: not everything should be RAG —
-    // only the big searchable corpus is; tiny always-needed facts stay inline.
-    const alwaysOn = [
-      `พื้นฐาน: ${meData.profile.firstNameTH} ${meData.profile.lastNameTH} (${meData.profile.nickname}), ${meData.profile.title}. ${meData.profile.tagline}`,
-      `ประสบการณ์รวม ${meData.summary.yearsOfExperience}+ ปี. ${meData.summary.bio}`,
-      `ติดต่อ: ${meData.contact.email}, ${meData.contact.phone}. ลิงก์เรซูเม่ PDF: ${meData.cta.resumePdfUrl}`,
-    ].join('\n')
-
-    // userMemory = topics already asked this session. Empty ⇒ new session ⇒ the
-    // system prompt's greeting behavior kicks in. Preserved from the n8n design.
-    const memoryContext = userMemory.length
-      ? `[หัวข้อที่ผู้ใช้เคยถามในเซสชันนี้]: ${userMemory.join(', ')}`
-      : `[เซสชันใหม่ — ยังไม่มีหัวข้อที่เคยถาม ให้แนะนำตัวตามที่ระบบกำหนด]`
-
-    // Explicit provider (reads the key Next loads from .env.local). gemini-2.5-flash
-    // supports tool calling and is fast enough for an interactive chat.
-    const model = createGoogleGenerativeAI({
-      apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-    })('gemini-flash-latest')
-
-    const result = await generateText({
-      model,
-      system: `${systemPrompt}\n\n[ข้อมูลที่มีอยู่เสมอ]\n${alwaysOn}\n\n${memoryContext}`,
-      prompt: message,
-      tools: {
-        searchResume: tool({
-          description:
-            'ค้นหาข้อมูลเชิงลึกใน resume ของปกร — ประสบการณ์ทำงาน โปรเจกต์ ทักษะ การศึกษา. เรียกใช้เมื่อผู้ใช้ถามรายละเอียดที่ไม่มีในข้อมูลพื้นฐาน.',
-          inputSchema: z.object({
-            query: z
-              .string()
-              .describe('คำค้นภาษาไทยหรืออังกฤษ เช่น "ประสบการณ์ CRM", "โปรเจกต์ Next.js", "ทักษะ DevOps"'),
-          }),
-          execute: async ({ query }) => {
-            const chunks = await retrieveChunks(query, 5)
-            return chunks.map((c) => ({ title: c.title, content: c.content }))
-          },
-        }),
-      },
-      // Let the model call the tool, read the retrieved chunks, then compose the
-      // final answer. Without a multi-step stop condition, generateText would
-      // halt right after the first tool call and never produce the reply text.
-      stopWhen: stepCountIs(5),
-    })
+    const result = await generateText(agentOptions)
 
     reply = result.text
     console.log({
@@ -308,28 +499,13 @@ export async function POST(req: NextRequest) {
       toolCalls: result.steps.flatMap((s) => s.toolCalls).map((t) => t.toolName),
       extractedReply: reply.slice(0, 100),
     })
-
-    // Memory: the agent doesn't emit a userMemory array (unlike the old n8n
-    // contract), so we always fall back to keyword auto-extraction from the
-    // user's message — the same KEYWORD_MAP path used before.
-    const keyword = extractKeyword(message)
-    if (keyword && !userMemory.includes(keyword)) {
-      const updatedMemory = [...userMemory, keyword].slice(-20)
-      await redis.set(memoryKey, JSON.stringify(updatedMemory), 'EX', 604800)
-    }
   } catch (error) {
     console.error(error)
     return NextResponse.json({ error: 'Service unavailable' }, { status: 503, headers: cors })
   }
 
-  // 8. Save to history (max 20, TTL 24h — matches session TTL)
-  const historyKey = keys.history(visitorId, chatSessionId)
-  const userMsg = JSON.stringify({ role: 'user', content: message, timestamp: Date.now() })
-  const aiMsg = JSON.stringify({ role: 'assistant', content: reply, timestamp: Date.now() })
-
-  await redis.rpush(historyKey, userMsg, aiMsg)
-  await redis.ltrim(historyKey, -20, -1)
-  await redis.expire(historyKey, 86400) // 24h TTL (same as session)
+  // 8. Save memory + history (max 20, TTL 24h — matches session TTL)
+  await persistTurn({ message, reply, memoryKey, userMemory, historyKey })
 
   // 9. Return reply
   return NextResponse.json({ reply }, { headers: cors })

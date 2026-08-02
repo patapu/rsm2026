@@ -232,6 +232,116 @@ describe('ChatInterface', () => {
     })
   })
 
+  it('renders a streamed SSE reply incrementally and keeps the assembled text', async () => {
+    const encoder = new TextEncoder()
+    const frames = [
+      ': open\n\n',
+      'event: chunk\ndata: {"text":"สวัสดี"}\n\n',
+      'event: chunk\ndata: {"text":"ครับ"}\n\n',
+      'event: done\ndata: {"text":"สวัสดีครับ"}\n\n',
+    ]
+
+    mockFetch.mockImplementation((url: string, options?: any) => {
+      if (url === '/api/auth/fingerprint') {
+        return Promise.resolve({ ok: true, status: 200, json: async () => ({}) })
+      }
+      if (url === '/api/chat' && (!options || options.method !== 'POST')) {
+        return Promise.resolve({ ok: true, status: 200, json: async () => ({ messages: [] }) })
+      }
+      // POST chat — answer with a real SSE body.
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        headers: { get: () => 'text/event-stream' },
+        body: new ReadableStream({
+          start(controller) {
+            for (const frame of frames) controller.enqueue(encoder.encode(frame))
+            controller.close()
+          },
+        }),
+      })
+    })
+
+    await act(async () => {
+      render(<ChatInterface />)
+    })
+
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('chat-input'), { target: { value: 'สวัสดี' } })
+    })
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('chat-send'))
+    })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('message-assistant').textContent).toBe('สวัสดีครับ')
+    })
+
+    // The request opted into streaming.
+    const postCall = mockFetch.mock.calls.find(
+      ([url, opts]: any[]) => url === '/api/chat' && opts?.method === 'POST',
+    )
+    expect(postCall?.[1].headers.Accept).toBe('text/event-stream')
+  })
+
+  it('falls back to the JSON reply when the response is not a stream', async () => {
+    // Default mockFetch returns { reply: 'test reply' } with no body/headers —
+    // i.e. exactly what a non-streaming server (or a buffering proxy) produces.
+    await act(async () => {
+      render(<ChatInterface />)
+    })
+
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('chat-input'), { target: { value: 'hello' } })
+    })
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('chat-send'))
+    })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('message-assistant').textContent).toBe('test reply')
+    })
+  })
+
+  it('shows an error when the stream reports a mid-stream failure', async () => {
+    const encoder = new TextEncoder()
+
+    mockFetch.mockImplementation((url: string, options?: any) => {
+      if (url === '/api/auth/fingerprint') {
+        return Promise.resolve({ ok: true, status: 200, json: async () => ({}) })
+      }
+      if (url === '/api/chat' && (!options || options.method !== 'POST')) {
+        return Promise.resolve({ ok: true, status: 200, json: async () => ({ messages: [] }) })
+      }
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        headers: { get: () => 'text/event-stream' },
+        body: new ReadableStream({
+          start(controller) {
+            controller.enqueue(encoder.encode('event: error\ndata: {"error":"Service unavailable"}\n\n'))
+            controller.close()
+          },
+        }),
+      })
+    })
+
+    await act(async () => {
+      render(<ChatInterface />)
+    })
+
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('chat-input'), { target: { value: 'hello' } })
+    })
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('chat-send'))
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText('Something went wrong. Please try again later.')).toBeTruthy()
+    })
+  })
+
   it('calls scrollIntoView on new message', async () => {
     const scrollIntoViewMock = vi.fn()
 

@@ -61,6 +61,15 @@ vi.mock('@/lib/fingerprint', () => ({
 // invoked while `generateText` is mocked.
 vi.mock('ai', () => ({
   generateText: vi.fn(async () => ({ text: 'สวัสดีครับ', steps: [] })),
+  // `streamText` powers the SSE path (Accept: text/event-stream). It is
+  // synchronous and returns an object whose `textStream` is an async iterable of
+  // text deltas — the mock mirrors that shape so the route can consume it.
+  streamText: vi.fn(() => ({
+    textStream: (async function* () {
+      yield 'สวัสดี'
+      yield 'ครับ'
+    })(),
+  })),
   tool: (def: unknown) => def,
   stepCountIs: (n: number) => n,
   embed: vi.fn(),
@@ -73,7 +82,7 @@ vi.mock('ai', () => ({
 import { POST } from '../route'
 import { redis } from '@/lib/redis'
 import { verifyToken } from '@/lib/fingerprint'
-import { generateText } from 'ai'
+import { generateText, streamText } from 'ai'
 
 // ──────────────────────────────────────────
 //  Helpers
@@ -745,5 +754,110 @@ describe('POST /api/chat', () => {
 
       expect(res.status).toBe(200)
     })
+  })
+})
+
+// ──────────────────────────────────────────
+//  Streaming reply (Accept: text/event-stream)
+// ──────────────────────────────────────────
+
+describe('POST /api/chat — SSE streaming', () => {
+  function makeStreamRequest(message = VALID_MESSAGE) {
+    return makeRequest({ message }, { fp_token: VALID_TOKEN }, { Accept: 'text/event-stream' })
+  }
+
+  /** Drains a streaming Response body into one string. */
+  async function drain(res: Response): Promise<string> {
+    const reader = res.body!.getReader()
+    const decoder = new TextDecoder()
+    let out = ''
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      out += decoder.decode(value, { stream: true })
+    }
+    return out
+  }
+
+  it('returns the SSE headers required to survive a buffering proxy', async () => {
+    const res = await POST(makeStreamRequest())
+
+    expect(res.headers.get('content-type')).toBe('text/event-stream')
+    // `no-transform` opts the response out of Next's gzip layer, which would
+    // otherwise buffer the deltas and defeat streaming entirely.
+    expect(res.headers.get('cache-control')).toBe('no-cache, no-transform')
+    expect(res.headers.get('x-accel-buffering')).toBe('no')
+    expect(res.body).toBeTruthy()
+  })
+
+  it('emits one chunk event per delta, then a done event with the full text', async () => {
+    const body = await drain(await POST(makeStreamRequest()))
+
+    expect(body).toContain('event: chunk\ndata: {"text":"สวัสดี"}')
+    expect(body).toContain('event: chunk\ndata: {"text":"ครับ"}')
+    expect(body).toContain('event: done\ndata: {"text":"สวัสดีครับ"}')
+  })
+
+  it('uses streamText — not generateText — on the streaming path', async () => {
+    await drain(await POST(makeStreamRequest()))
+
+    expect(vi.mocked(streamText)).toHaveBeenCalledOnce()
+    expect(vi.mocked(generateText)).not.toHaveBeenCalled()
+  })
+
+  it('hands the streaming call the same message, system prompt and retrieval tool', async () => {
+    await drain(await POST(makeStreamRequest()))
+
+    const args = vi.mocked(streamText).mock.calls[0][0] as {
+      prompt: string
+      system: string
+      tools: Record<string, unknown>
+    }
+    expect(args.prompt).toBe(VALID_MESSAGE)
+    expect(args.system).toContain('You are an AI assistant.')
+    expect(args.tools).toHaveProperty('searchResume')
+  })
+
+  it('persists the streamed reply to Redis history once the stream ends', async () => {
+    await drain(await POST(makeStreamRequest()))
+
+    expect(vi.mocked(redis.rpush)).toHaveBeenCalledOnce()
+    const [key, userMsg, aiMsg] = vi.mocked(redis.rpush).mock.calls[0] as [string, string, string]
+    expect(key).toBe(`chat:history:${VALID_TOKEN}`)
+    expect(JSON.parse(userMsg).content).toBe(VALID_MESSAGE)
+    // The assistant entry holds the ASSEMBLED reply, not a single delta.
+    expect(JSON.parse(aiMsg).content).toBe('สวัสดีครับ')
+    expect(vi.mocked(redis.ltrim)).toHaveBeenCalledWith(`chat:history:${VALID_TOKEN}`, -20, -1)
+  })
+
+  it('reports a mid-stream failure as an error event, not an HTTP status', async () => {
+    vi.mocked(streamText).mockImplementationOnce(
+      () =>
+        ({
+          textStream: (async function* () {
+            throw new Error('model unavailable')
+          })(),
+        }) as never,
+    )
+
+    const res = await POST(makeStreamRequest())
+    // The status is already committed to 200 by the time the model fails.
+    expect(res.status).toBe(200)
+    expect(await drain(res)).toContain('event: error')
+  })
+
+  it('still rejects an unauthenticated stream request with a real 401', async () => {
+    // Auth runs before the body is committed, so proper status codes survive.
+    const req = makeRequest({ message: VALID_MESSAGE }, {}, { Accept: 'text/event-stream' })
+    const res = await POST(req)
+
+    expect(res.status).toBe(401)
+  })
+
+  it('returns JSON when the client does not ask for a stream', async () => {
+    const res = await POST(makeValidRequest())
+
+    expect(res.headers.get('content-type')).toContain('application/json')
+    expect(await res.json()).toHaveProperty('reply')
   })
 })

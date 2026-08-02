@@ -4,6 +4,7 @@ import { Card, CardContent } from '@heroui/react'
 import ReactMarkdown from 'react-markdown'
 import { markdownComponents } from './MarkdownContent'
 import GlitchReveal from './GlitchReveal'
+import { hideIncompleteResumeBlock } from './streamingMarkdown'
 
 export interface ChatMessageData {
   role: 'user' | 'assistant'
@@ -19,6 +20,12 @@ interface ChatMessageProps {
    */
   isStreaming?: boolean
   onDoneStreaming?: () => void
+  /**
+   * True while the reply's text is still ARRIVING over SSE. The content grows
+   * between renders, so the one-shot GlitchReveal entrance is skipped (it would
+   * re-fire on every delta) in favour of plain Markdown plus a blinking caret.
+   */
+  isPending?: boolean
 }
 
 /**
@@ -31,6 +38,7 @@ export default function ChatMessage({
   message,
   isStreaming = false,
   onDoneStreaming,
+  isPending = false,
 }: ChatMessageProps) {
   const isUser = message.role === 'user'
 
@@ -46,7 +54,21 @@ export default function ChatMessage({
       ) : (
         <Card className="max-w-[80%] bg-[rgba(13,13,26,0.6)] border border-[rgba(255,0,255,0.3)] shadow-[0_0_8px_rgba(255,0,255,0.15)]">
           <CardContent className="px-3 py-2">
-            {isStreaming ? (
+            {isPending ? (
+              <>
+                {/* A rich `resume-*` block is only rendered once its closing
+                    fence has arrived — otherwise the visitor watches half a
+                    JSON payload type itself out and then disappear. */}
+                <ReactMarkdown components={markdownComponents}>
+                  {hideIncompleteResumeBlock(message.content)}
+                </ReactMarkdown>
+                <span
+                  aria-hidden="true"
+                  data-testid="stream-caret"
+                  className="inline-block w-[2px] h-[0.9em] ml-0.5 align-text-bottom bg-[#FF00FF] shadow-[0_0_6px_rgba(255,0,255,0.8)] animate-pulse motion-reduce:animate-none"
+                />
+              </>
+            ) : isStreaming ? (
               <GlitchReveal text={message.content} onDone={onDoneStreaming} />
             ) : (
               <ReactMarkdown components={markdownComponents}>
