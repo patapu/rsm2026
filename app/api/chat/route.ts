@@ -7,8 +7,11 @@ export const runtime = 'nodejs'
 
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { generateText, tool, stepCountIs } from 'ai'
+import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { verifyToken } from '@/lib/verify-token'
 import { redis, keys } from '@/lib/redis'
+import { retrieveChunks } from '@/lib/rag/retrieve'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import { getMeForLocale, DEFAULT_LOCALE, type Locale } from '@/lib/i18n'
@@ -245,101 +248,76 @@ export async function POST(req: NextRequest) {
   const systemPrompt = getSystemPrompt(locale)
   console.log({ instructionsLength: systemPrompt.length, hasInstructions: systemPrompt.length > 0 })
 
-  // 7. Forward to n8n
-  const n8nUrl = process.env.N8N_WEBHOOK_URL
-  console.log({
-    n8nUrl
-  })
-  if (!n8nUrl) {
-    return NextResponse.json({ error: 'Service unavailable' }, { status: 503, headers: cors })
-  }
-
+  // 7. Generate the reply with a RAG tool-calling agent (Vercel AI SDK).
+  //    Replaces the old "POST the entire ME object to n8n" design. The model no
+  //    longer receives the whole resume up front — it RETRIEVES only the chunks
+  //    it needs via the searchResume tool. This is the agent + RAG payoff.
   let reply: string
   try {
-    const n8nRes = await fetch(n8nUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(process.env.N8N_WEBHOOK_AUTH_NAME && process.env.N8N_WEBHOOK_AUTH
-          ? { [process.env.N8N_WEBHOOK_AUTH_NAME]: process.env.N8N_WEBHOOK_AUTH }
-          : {}),
+    // Small, always-needed facts (for greetings + PDF links + "who are you")
+    // stay in the prompt — cheap and needed almost every turn. The large,
+    // query-dependent material (experience/projects/skills detail) is fetched on
+    // demand via searchResume. Teaching point: not everything should be RAG —
+    // only the big searchable corpus is; tiny always-needed facts stay inline.
+    const alwaysOn = [
+      `พื้นฐาน: ${meData.profile.firstNameTH} ${meData.profile.lastNameTH} (${meData.profile.nickname}), ${meData.profile.title}. ${meData.profile.tagline}`,
+      `ประสบการณ์รวม ${meData.summary.yearsOfExperience}+ ปี. ${meData.summary.bio}`,
+      `ติดต่อ: ${meData.contact.email}, ${meData.contact.phone}. ลิงก์เรซูเม่ PDF: ${meData.cta.resumePdfUrl}`,
+    ].join('\n')
+
+    // userMemory = topics already asked this session. Empty ⇒ new session ⇒ the
+    // system prompt's greeting behavior kicks in. Preserved from the n8n design.
+    const memoryContext = userMemory.length
+      ? `[หัวข้อที่ผู้ใช้เคยถามในเซสชันนี้]: ${userMemory.join(', ')}`
+      : `[เซสชันใหม่ — ยังไม่มีหัวข้อที่เคยถาม ให้แนะนำตัวตามที่ระบบกำหนด]`
+
+    // Explicit provider (reads the key Next loads from .env.local). gemini-2.5-flash
+    // supports tool calling and is fast enough for an interactive chat.
+    const model = createGoogleGenerativeAI({
+      apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+    })('gemini-flash-latest')
+
+    const result = await generateText({
+      model,
+      system: `${systemPrompt}\n\n[ข้อมูลที่มีอยู่เสมอ]\n${alwaysOn}\n\n${memoryContext}`,
+      prompt: message,
+      tools: {
+        searchResume: tool({
+          description:
+            'ค้นหาข้อมูลเชิงลึกใน resume ของปกร — ประสบการณ์ทำงาน โปรเจกต์ ทักษะ การศึกษา. เรียกใช้เมื่อผู้ใช้ถามรายละเอียดที่ไม่มีในข้อมูลพื้นฐาน.',
+          inputSchema: z.object({
+            query: z
+              .string()
+              .describe('คำค้นภาษาไทยหรืออังกฤษ เช่น "ประสบการณ์ CRM", "โปรเจกต์ Next.js", "ทักษะ DevOps"'),
+          }),
+          execute: async ({ query }) => {
+            const chunks = await retrieveChunks(query, 5)
+            return chunks.map((c) => ({ title: c.title, content: c.content }))
+          },
+        }),
       },
-      body: JSON.stringify({
-        sessionId: `${sessionId}:${chatSessionId}`,
-        chatInput: {
-          userId: visitorId,
-          message,
-          userMemory,
-        },
-        instructions: systemPrompt,
-        me: {
-          profile: meData.profile,
-          contact: meData.contact,
-          summary: meData.summary,
-          skills: meData.skills,
-          experience: meData.experience,
-          projects: meData.projects,
-          education: meData.education,
-          hobbies: meData.hobbies,
-          cta: meData.cta,
-        },
-      }),
+      // Let the model call the tool, read the retrieved chunks, then compose the
+      // final answer. Without a multi-step stop condition, generateText would
+      // halt right after the first tool call and never produce the reply text.
+      stopWhen: stepCountIs(5),
     })
-    // Never log the auth header itself — it carries N8N_WEBHOOK_AUTH in
-    // plaintext, and this runs on every request. Status is what's diagnostic.
-    console.log({ n8nStatus: n8nRes.status, authHeaderSent: Boolean(process.env.N8N_WEBHOOK_AUTH) })
-    if (!n8nRes.ok) {
-      throw new Error(`n8n returned ${n8nRes.status}`)
-    }
-    const text = await n8nRes.text()
-    console.log({ n8nResponseText: text })
-    if (!text || text.trim() === '') {
-      throw new Error('n8n returned empty response body')
-    }
-    let data: Record<string, unknown>
-    try {
-      data = JSON.parse(text)
-    } catch {
-      // n8n sometimes returns raw text instead of JSON — treat as plain output
-      console.warn('n8n returned non-JSON, using raw text as reply')
-      data = { output: text.trim() }
-    }
 
-    // Extract reply text — handle all possible response shapes
-    let outputValue = data.output ?? data.reply ?? ''
-    let memoryFromResponse: string[] | null = null
+    reply = result.text
+    console.log({
+      steps: result.steps.length,
+      toolCalls: result.steps.flatMap((s) => s.toolCalls).map((t) => t.toolName),
+      extractedReply: reply.slice(0, 100),
+    })
 
-    if (typeof outputValue === 'string') {
-      // Handle nested JSON string (model sometimes returns JSON inside output field)
-      try {
-        const parsed = JSON.parse(outputValue)
-        if (parsed && typeof parsed === 'object' && parsed.output) {
-          outputValue = parsed.output
-          if (parsed.userMemory && Array.isArray(parsed.userMemory)) {
-            memoryFromResponse = parsed.userMemory
-          }
-        }
-      } catch {
-        // not nested JSON, use as-is
-      }
+    // Memory: the agent doesn't emit a userMemory array (unlike the old n8n
+    // contract), so we always fall back to keyword auto-extraction from the
+    // user's message — the same KEYWORD_MAP path used before.
+    const keyword = extractKeyword(message)
+    if (keyword && !userMemory.includes(keyword)) {
+      const updatedMemory = [...userMemory, keyword].slice(-20)
+      await redis.set(memoryKey, JSON.stringify(updatedMemory), 'EX', 604800)
     }
-
-    reply = (outputValue || '') as string
-    console.log({ data, extractedReply: reply.slice(0, 100) })
-
-    // Memory management: use model's memory if provided, otherwise auto-generate from message
-    if (memoryFromResponse || (data.userMemory && Array.isArray(data.userMemory))) {
-      const newMemory = memoryFromResponse ?? (data.userMemory as string[])
-      await redis.set(memoryKey, JSON.stringify(newMemory), 'EX', 604800)
-    } else {
-      // Auto-generate memory keyword from user message (simple approach)
-      const keyword = extractKeyword(message)
-      if (keyword && !userMemory.includes(keyword)) {
-        const updatedMemory = [...userMemory, keyword].slice(-20)
-        await redis.set(memoryKey, JSON.stringify(updatedMemory), 'EX', 604800)
-      }
-    }
-  } catch(error) {
+  } catch (error) {
     console.error(error)
     return NextResponse.json({ error: 'Service unavailable' }, { status: 503, headers: cors })
   }

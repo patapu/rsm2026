@@ -1,0 +1,134 @@
+[
+  {
+    "id": "about",
+    "type": "about",
+    "title": "ปกร เชาวนประเสริฐ — Lead Developer",
+    "text": "ปกร เชาวนประเสริฐ (Kur), ตำแหน่ง Lead Developer. สร้างระบบที่ scale ได้จริง ด้วย code ที่คนอ่านรู้เรื่อง ประสบการณ์ 8+ ปี. Lead Developer 8+ ปี ที่ไม่ได้แค่เขียน code — แต่ออกแบบ architecture, วาง database schema, deploy production และนำทีมส่งมอบ CRM platform ให้องค์กรกว่า 15 ราย ตั้งแต่ Millennium Auto ถึง CP-Meiji ถนัดสร้างระบบ config-driven ที่ทีมต่อยอดได้โดยไม่ต้องรอ dev — CRM ที่ทำครอบคลุมทั้ง Sales, Marketing, Service และ Field Service ครบวงจร — ปัจจุบันทำงานแบบ AI-first ด้วย Claude Code เป็นหลัก จุดเด่น: ส่งมอบ CRM platform ให้ 15+ องค์กร — ไม่มีงานไหนเหมือนกัน ครอบคลุม Sales, Marketing, Service, Field Service / สร้าง config-driven system ที่ลดเวลา setup หน้าใหม่จากวันเหลือชั่วโมง / ดูแล full cycle เอง — architecture → dev → deploy → migration / นำทีม 5 คน พร้อม code review culture ที่ทำให้ quality คงที่ / Docker + Nginx + Jenkins + Kubernetes pipeline ที่ deploy ได้มั่นใจทุกวัน / CRM ครบวงจร 90+ pages: Lead, Opportunity, Quotation, Case Management, Field Service, Campaign, Customer 360 / Real-time features: Socket.IO chat, AI chatbot, live notifications"
+  },
+  {
+    "id": "skills-ภาษาโปรแกรม",
+    "type": "skills",
+    "title": "ทักษะ: ภาษาโปรแกรม",
+    "text": "ทักษะด้าน ภาษาโปรแกรม ของ Kur: JavaScript (90/100), TypeScript (80/100), PHP (60/100)."
+  },
+  {
+    "id": "skills-Frameworks & Libraries",
+    "type": "skills",
+    "title": "ทักษะ: Frameworks & Libraries",
+    "text": "ทักษะด้าน Frameworks & Libraries ของ Kur: React (90/100), Next.js (85/100), Node.js (80/100), Ant Design (90/100), Material-UI (75/100), Vue.js (65/100), Prisma (80/100), Socket.IO (75/100)."
+  },
+  {
+    "id": "skills-ฐานข้อมูล",
+    "type": "skills",
+    "title": "ทักษะ: ฐานข้อมูล",
+    "text": "ทักษะด้าน ฐานข้อมูล ของ Kur: PostgreSQL (85/100), MySQL (70/100), Redis (85/100)."
+  },
+  {
+    "id": "skills-DevOps & Cloud",
+    "type": "skills",
+    "title": "ทักษะ: DevOps & Cloud",
+    "text": "ทักษะด้าน DevOps & Cloud ของ Kur: Docker (80/100), Nginx (75/100), Jenkins (70/100), Kubernetes (65/100)."
+  },
+  {
+    "id": "skills-เครื่องมือ & AI",
+    "type": "skills",
+    "title": "ทักษะ: เครื่องมือ & AI",
+    "text": "ทักษะด้าน เครื่องมือ & AI ของ Kur: Git (90/100), n8n (75/100), Figma (60/100), GitHub Copilot (70/100), Kiro (AI IDE) (75/100), Claude Code (85/100)."
+  },
+  {
+    "id": "skills-soft",
+    "type": "skills",
+    "title": "ทักษะเชิงระบบ / Soft skills",
+    "text": "ทักษะเชิงระบบและการทำงาน: Config-driven System Design — ลด dev time อย่างเป็นระบบ / Team Leadership & Code Review Culture / Database Schema Design & Migration Planning / Technical Consulting — แปลง business need เป็น technical solution / Cross-project Code Sharing & Reusable Architecture / CRM Domain Expertise — Sales, Marketing, Service, Field Service workflows / Multi-tenant SaaS Architecture Design / Real-time System Design (WebSocket, Event-driven) / AI-Assisted Development — ใช้ Claude Code เป็นหลัก ออกแบบ dynamic pipeline ผ่าน orchestrator ที่ route งานให้ sub-agents เฉพาะทางแบบ adaptive ต่างจาก spec-driven pipeline เชิงเส้นของ Kiro (spec → design → tasks); ผ่านการใช้จริงตั้งแต่ Copilot → Kiro → Claude Code."
+  },
+  {
+    "id": "experience-MSC",
+    "type": "experience",
+    "title": "ประสบการณ์: MSC",
+    "text": "บริษัท MSC (2019-09–present, รูปแบบงาน remote). ตำแหน่ง: Development Leader (2025-01–present), Senior Programmer (2021-01–2024-12), Programmer (2019-09–2020-12). นำทีมพัฒนา CRM platform ให้ลูกค้าองค์กรขนาดใหญ่กว่า 15 ราย ครอบคลุมตั้งแต่ coding, deployment, database design จนถึง migration หน้าที่: ออกแบบ architecture และ database schema สำหรับ CRM platform ทั้ง S-CRM (React SPA) และ Next-S-CRM (Next.js 15); Deploy และดูแล production environment (Docker, Nginx, Jenkins, Kubernetes บน Azure & IBM Cloud); สร้าง shared components / code sharing ข้าม projects — reusable UI components กว่า 80+ ชิ้น; วาง migration plan ย้ายระบบเก่าเข้า platform ใหม่ — design ทั้ง database schema, data mapping และ UX flow; Lead ทีม dev 5 คน พร้อม code review culture ที่ทำให้ quality คงที่; ออกแบบ CRM modules ครบวงจร: Lead, Opportunity, Quotation, Sales Order, Case Management, Field Service, Work Order, Campaign, Customer 360; พัฒนา real-time features ด้วย Socket.IO — chat, notifications, live updates; สร้าง workflow automation engine สำหรับ case management process steps; ออกแบบ role-based access control + visible function system สำหรับ multi-tenant deployment; Integrate Azure AD SSO (MSAL) สำหรับ enterprise clients. ผลงาน: ส่งมอบ Custom CRM platform: 15+ ลูกค้าองค์กร — Well, WDC, Panel Plus, Modernform, Central Food, Millennium Auto ฯลฯ; พัฒนา S-ERP: All module dashboards — ระบบ ERP ครบทุก module; สร้าง CP-Meiji Web App: Solo architect — 30+ tables, 4 doc types, multi-dept approval — ออกแบบเองทั้งหมดตั้งแต่ศูนย์ — DB schema, config-driven form engine, expression-based validation, row-level access control, Azure AD SSO, Redis caching — ไม่มี template ไม่มี reference; สร้าง Chat Assistance: ระบบ chat ใน CRM — Real-time Socket.IO chat + n8n chatbot + AI Agent context เพิ่ม engagement ของ end-user; พัฒนา Next-S-CRM: CRM generation ใหม่ — ปรับ architecture ใหม่ทั้งหมดด้วย Next.js 15 — config-driven CRUD ลด dev time 70%; สร้าง S-Hospitality: Dynamic & Master Components — reusable components สำหรับสาย hospitality; CRM ครบวงจร: 90+ routes/pages — Lead, Opportunity, Quotation, Sales Order, Case Management, Field Service, Work Order, Campaign, Customer 360, Dashboard, Reporting; Kubernetes deployment: Azure + IBM Cloud — Multi-environment CI/CD pipeline: dev, UAT, production; Landing Page Builder: Marketing self-service tool — ให้ทีม marketing สร้าง landing page ได้เองโดยไม่ต้องรอ dev. เทคโนโลยี: JavaScript, React, Next.js, Ant Design, Material-UI, Styled Components, Socket.IO, Chart.js, Nivo, n8n, PostgreSQL, Prisma, Redis, Docker, Nginx, Jenkins, Kubernetes, Azure AD (MSAL), Google Maps API, Git."
+  },
+  {
+    "id": "experience-CDG",
+    "type": "experience",
+    "title": "ประสบการณ์: CDG",
+    "text": "บริษัท CDG (2017-11–2019-04, รูปแบบงาน onsite). ตำแหน่ง: Programmer (2017-11–2019-04). พัฒนา web application สำหรับระบบสอบและระบบเครื่องราชอิสริยาภรณ์ของหน่วยงานรัฐ หน้าที่: พัฒนา frontend ด้วย Vue.js และ React; เขียน backend API ด้วย PHP; ออกแบบและ optimize SQL queries. ผลงาน: ปรับ performance: ลด query time — optimize SQL queries สำหรับข้อมูลขนาดใหญ่; เรียนรู้ stack ใหม่: 4 ภาษา/frameworks — JS, Vue, React, PHP ภายในปีแรก. เทคโนโลยี: PHP, JavaScript, Vue.js, React, MySQL, Git."
+  },
+  {
+    "id": "project-S-CRM Platform",
+    "type": "project",
+    "title": "โปรเจกต์: S-CRM Platform",
+    "text": "โปรเจกต์ S-CRM Platform (CRM Platform). บทบาท: Developer → Lead Developer — ร่วมพัฒนาตั้งแต่ต้นจนถึงนำทีม ดูแล architecture, deployment, code review และ migration. CRM platform หลักของบริษัทที่ deploy ให้ลูกค้าองค์กรกว่า 14 ราย แต่ละรายมี customization และ module ที่แตกต่างกัน ดูแลและพัฒนาต่อเนื่องมากกว่า 4 ปี — ครอบคลุม Sales, Marketing, Service, Field Service และ Customer 360 ทั้งหมดในระบบเดียว เทคโนโลยี: React 16, JavaScript, Ant Design, Material-UI, Styled Components, Socket.IO, Chart.js, Nivo, React Router, Redux, Axios, PostgreSQL, Redis, Docker, Nginx, Jenkins, Kubernetes, Azure AD (MSAL), GitHub Copilot. จุดเด่น: Deploy ให้ลูกค้าองค์กร 14 ราย แต่ละรายมี config และ module เป็นของตัวเอง; ดูแล production environment ด้วย Docker + Nginx + Jenkins + Kubernetes (Azure & IBM Cloud); สร้าง shared component และ code sharing ข้าม client projects; วาง migration plan ย้ายระบบเก่าเข้า platform ใหม่ — ไม่ใช่แค่วาง แต่ design และทำเองด้วยทั้ง database schema และ UX; ระบบ CRM ครบวงจร: Lead Management, Opportunity Pipeline, Quotation, Sales Order, Case Management, Field Service, Work Order, Campaign, Customer 360, Dashboard & Reporting; Real-time features: Socket.IO chat, live notifications, calendar sync; AI/Chatbot integration: Chat Assistant, AI Agent context สำหรับ customer service; Landing Page Builder สำหรับ marketing campaigns; Customer Journey tracking และ Churn Rate analysis; Scoring system สำหรับ lead qualification; Workflow automation engine สำหรับ case management process; SLA management และ escalation rules; Google Maps integration สำหรับ field service routing; Multi-format reporting: Excel export, PDF viewer, Chart dashboards (Nivo, Chart.js); Role-based access control + visible function system; Azure AD SSO integration สำหรับ enterprise clients."
+  },
+  {
+    "id": "project-Full-S-CRM (Next-S-CRM)",
+    "type": "project",
+    "title": "โปรเจกต์: Full-S-CRM (Next-S-CRM)",
+    "text": "โปรเจกต์ Full-S-CRM (Next-S-CRM) (CRM Platform). บทบาท: Lead Developer & Architect — ออกแบบ architecture ใหม่ทั้งหมด, สร้าง core framework, นำทีมพัฒนา. CRM platform generation ใหม่ที่ redesign architecture ทั้งหมดจาก S-CRM เดิม — ย้ายจาก React SPA มาเป็น Next.js 15 App Router, เปลี่ยนจาก raw SQL เป็น Prisma ORM, เพิ่ม Redis session/cache layer และ config-driven CRUD system ที่ลด boilerplate ได้กว่า 70% เทคโนโลยี: Next.js 15, React 19, JavaScript, PostgreSQL, Prisma, Redis, Docker, Nginx, Ant Design, Tailwind CSS, MinIO, Azure AD, n8n, Kiro (AI IDE), Claude Code. จุดเด่น: ออกแบบ Centralized CRUD Helper — auto audit fields, access control, transaction management และ audit logging ในที่เดียว; สร้าง Config-driven Form & Table system — สร้างหน้า CRUD ใหม่ได้ภายในชั่วโมงจาก config ล้วน; Redis-backed Transaction Management — interactive Prisma transactions ผ่าน Redis keys ไม่ต้อง hold DB connection; ModelEvent System — post-write hooks ที่ trigger business logic อัตโนมัติหลัง CRUD operations; Row-level Access Control — permission-based data filtering ที่ทำงานร่วมกับ CRUD helper โดยอัตโนมัติ; Expression-based Validation Engine — dynamic validation rules ที่กำหนดผ่าน config (filtrex expressions) รองรับ CSP; Multi-tenant ready — codebase เดียวรองรับลูกค้าหลายรายด้วย dynamic module system; Azure AD SSO + Lucia v3 Auth — enterprise-grade authentication พร้อม PKCE flow; Centralized Error Handling — log errors to DB + auto-create Azure Planner tasks สำหรับ critical issues; ลด development time หน้าใหม่จาก 2-3 วัน เหลือ 2-3 ชั่วโมง ด้วย config-driven approach; พัฒนาด้วย AI-assisted workflow — เริ่มจาก Kiro (spec-driven pipeline) แล้วย้ายมา Claude Code (dynamic sub-agent pipeline) ที่ route งานเองได้."
+  },
+  {
+    "id": "project-CP-Meiji Material Request",
+    "type": "project",
+    "title": "โปรเจกต์: CP-Meiji Material Request",
+    "text": "โปรเจกต์ CP-Meiji Material Request (Enterprise Web App). บทบาท: Solo Architect & Full Stack Developer — ออกแบบ architecture, DB schema, UX flow, expression engine, access control และ migration plan ด้วยตัวเอง ไม่มี template ไม่มี reference. ระบบ Material Request สำหรับ CP-Meiji ที่ออกแบบและ build เองทั้งหมดตั้งแต่ศูนย์ — ครอบคลุม multi-department approval workflow, dynamic form engine ที่ driven ด้วย config, expression-based validation, row-level access control, Azure AD SSO และ migration plan จากระบบเดิม รองรับ 4 document types (Create, Extend, Edit, Deletion) เทคโนโลยี: Next.js 15, React 19, JavaScript, PostgreSQL, Prisma, Redis, Ant Design, Tailwind CSS, MinIO, Azure AD (MSAL), Lucia Auth, Docker, Nginx. จุดเด่น: ออกแบบ database schema 30+ tables — normalize ให้รองรับ dynamic fields, multi-level approval chain และ versioned material flow; สร้าง config-driven form engine — MaterialFlow → Section → Input ที่ admin กำหนด field, validation, condition ได้โดยไม่ต้องแก้ code; Expression engine (filtrex-based) สำหรับ dynamic validation rules: requireIf, disableIf, defaultIf ที่ evaluate ได้ทั้ง client/server แบบ CSP-safe; Multi-level route approval system — รองรับ sequential + parallel department approvals, delegate managers, auto-activate next level; Row-level access control — แยก permission ระดับ own/full/none ต่อ user ต่อ resource แบบ dynamic; Azure AD SSO with PKCE flow + Lucia session management + Redis session store; 4 document types (Create/Extend/Edit/Deletion) แต่ละ type มี flow และ validation ต่างกัน จัดการบน codebase เดียว; Auto-generate TXT export file ส่ง SAP เมื่อ approval chain ครบ พร้อม convert เป็น Master Item; Redis caching layer — cache material flow config 5 นาที ลด DB query ซ้ำ; Event-driven architecture (ModelEvent) — post-write hooks สำหรับ audit log, notification, cascading updates; Centralized error handling — log ทุก error ลง DB + auto-create Azure Planner task สำหรับ critical issues; วาง migration plan ย้ายข้อมูลจากระบบเดิมเข้า schema ใหม่โดยไม่สูญเสียข้อมูล."
+  },
+  {
+    "id": "project-S-ERP Dashboard",
+    "type": "project",
+    "title": "โปรเจกต์: S-ERP Dashboard",
+    "text": "โปรเจกต์ S-ERP Dashboard (ERP System). บทบาท: Frontend Developer — พัฒนา dashboard และ consult recal logic. พัฒนา dashboard สำหรับระบบ ERP และให้คำปรึกษาด้าน recalculation logic เทคโนโลยี: React, JavaScript, PostgreSQL, n8n. จุดเด่น: Dashboard แสดงข้อมูล ERP แบบ real-time; ให้คำปรึกษาและออกแบบ recalculation logic; Reusable chart/widget components."
+  },
+  {
+    "id": "project-CRM Lead & Opportunity Management",
+    "type": "project",
+    "title": "โปรเจกต์: CRM Lead & Opportunity Management",
+    "text": "โปรเจกต์ CRM Lead & Opportunity Management (CRM Module). บทบาท: Lead Developer — ออกแบบ flow และพัฒนา module ทั้งหมด. ระบบจัดการ Lead และ Opportunity pipeline สำหรับ S-CRM — ครอบคลุมตั้งแต่ lead capture, qualification scoring, pipeline stages จนถึง conversion เป็น customer พร้อม commit target tracking และ sales forecast เทคโนโลยี: React, JavaScript, Ant Design, Chart.js, PostgreSQL. จุดเด่น: Lead scoring system — คำนวณคะแนนอัตโนมัติจาก criteria ที่กำหนด; Opportunity pipeline — drag & drop stages, probability tracking, expected revenue; Commit target — ตั้งเป้าหมายรายเดือน/ไตรมาส พร้อม dashboard tracking; Lead assignment rules — auto-assign ตาม segment, territory, round-robin; Sales forecast dashboard ด้วย Nivo charts; Import/Export ข้อมูลจาก Excel สำหรับ bulk operations."
+  },
+  {
+    "id": "project-CRM Case Management & Field Service",
+    "type": "project",
+    "title": "โปรเจกต์: CRM Case Management & Field Service",
+    "text": "โปรเจกต์ CRM Case Management & Field Service (CRM Module). บทบาท: Lead Developer — ออกแบบ workflow engine และพัฒนา module. ระบบ Case Management สำหรับ after-sales service — รองรับ case creation, SLA tracking, process step workflow, field service dispatch และ work order management พร้อม Google Maps integration สำหรับ routing เทคโนโลยี: React, JavaScript, Ant Design, Google Maps API, Socket.IO, PostgreSQL. จุดเด่น: Case workflow engine — configurable process steps, auto-escalation, SLA countdown; SLA management — กำหนด response time / resolution time ตาม priority + holiday calendar; Field Service module — dispatch technicians, route planning ด้วย Google Maps; Work Order system — checklist-based task completion, photo evidence, digital signature; Email-to-Case — auto-create case จาก incoming email; Case category / sub-category hierarchy สำหรับ classification; Report: Case tracking status, Job status tracking, Problem analysis; Real-time notification เมื่อ case status เปลี่ยน."
+  },
+  {
+    "id": "project-CRM Quotation & Sales Order",
+    "type": "project",
+    "title": "โปรเจกต์: CRM Quotation & Sales Order",
+    "text": "โปรเจกต์ CRM Quotation & Sales Order (CRM Module). บทบาท: Lead Developer — ออกแบบ data model และพัฒนา module. ระบบ Quotation และ Sales Order สำหรับ S-CRM — รองรับ product catalog, price list management, discount rules, multi-currency และ approval workflow พร้อม PDF generation เทคโนโลยี: React, JavaScript, Ant Design, ExcelJS, PostgreSQL. จุดเด่น: Product catalog — product groups, sub-groups, UOM, price list management; Quotation builder — line items, discount calculation, tax, total summary; Price list groups — กำหนดราคาตาม customer segment / tier; Sales Order workflow — convert จาก quotation, approval process; Agreement/Contract management — track contract period, renewal alerts; Excel export สำหรับ reporting และ bulk price update; Series document — auto-generate running number ตาม format ที่กำหนด."
+  },
+  {
+    "id": "project-S-Loyalty Platform",
+    "type": "project",
+    "title": "โปรเจกต์: S-Loyalty Platform",
+    "text": "โปรเจกต์ S-Loyalty Platform (Loyalty & CRM Platform). บทบาท: Lead Developer & Architect — ขึ้นโครง translation system, ออกแบบ centralized CRUD + transaction management, วาง architecture ทั้ง admin และ LIFF app. Loyalty platform ที่ครอบคลุมทั้ง member-facing app (สะสมแต้ม, แลกรางวัล) และ admin back-office — ขึ้นโครง translation system (next-intl + DB-driven content per language) และ centralized CRUD framework ที่ทีมต่อยอดได้ทันที รองรับ multi-language CMS, role-based access control, MinIO file storage และ interactive transaction management เทคโนโลยี: Next.js 15, React 19, JavaScript, Prisma, PostgreSQL, Redis (ioredis), Ant Design, Tailwind CSS, next-intl, Lucia Auth, Arctic (OAuth), MinIO, MDX Editor, dnd-kit, Docker, Yup, GitHub Copilot. จุดเด่น: ขึ้นโครง Translation System — next-intl + DB-driven content per language ที่ admin จัดการภาษาได้เองผ่าน CMS โดยไม่ต้องแก้ code; ออกแบบ Centralized CRUD Helper — auto audit fields (createdBy/updatedBy/createdPgm), UUID generation, nested relation handling, transaction management ในที่เดียว; Interactive Transaction System — Prisma $transaction ผ่าน cookie-based transaction ID รองรับ multi-step operations ที่ commit/rollback ได้ข้าม API calls; ModelEvent System — post-write hooks ที่ trigger business logic อัตโนมัติหลัง create/update/delete พร้อม preventData comparison; Role-based Access Control — permission check ระดับ table + include relations, canRead/canWrite per role per table; Member Authentication — Lucia Auth + Arctic OAuth สำหรับ member login, session management, OTP verification; Multi-language CMS — MDX editor + ContentPerLanguage model ที่รองรับ rich text content หลายภาษา; Admin Back-office — user management, role-menu assignment, dashboard, reporting modules; MinIO File Storage — centralized file upload/download service รองรับ image, document, QR code; Middleware Architecture — แยก auth middleware 3 layers: admin (session), LIFF (LINE token), API (Basic Auth) ตาม route pattern; FormModel Context — nested form state management ที่รองรับ parent-child form hierarchy; In-app Documentation — s-document section สำหรับ developer onboarding: CRUD usage, table naming conventions, deployment guide; Dashboard & Reporting — overview metrics, point history analytics, member segmentation."
+  },
+  {
+    "id": "project-S-Hospitality Config-Driven Master",
+    "type": "project",
+    "title": "โปรเจกต์: S-Hospitality Config-Driven Master",
+    "text": "โปรเจกต์ S-Hospitality Config-Driven Master (Component System). บทบาท: Developer — ออกแบบ config schema และพัฒนา components. ออกแบบ component และ config system สำหรับหน้า master ให้ setup ได้ผ่าน config ล้วน ครอบคลุม record list, small list และ form เทคโนโลยี: Next.js, React, JavaScript. จุดเด่น: Config-driven — setup หน้า master ได้โดยไม่ต้องเขียน UI code ใหม่; ครอบคลุม 3 รูปแบบ: record list, small list และ form; ลดเวลาสร้างหน้า master ใหม่อย่างมีนัยสำคัญ."
+  },
+  {
+    "id": "project-Chat Assistance for S-CRM",
+    "type": "project",
+    "title": "โปรเจกต์: Chat Assistance for S-CRM",
+    "text": "โปรเจกต์ Chat Assistance for S-CRM (Feature / Integration). บทบาท: Developer — ออกแบบและพัฒนา chat module ทั้ง frontend และ integration layer. ระบบ chat ในตัว CRM ที่รองรับทั้ง real-time messaging ระหว่าง user, chatbot automation ผ่าน n8n, AI Agent context สำหรับ customer service และ emoji reactions — เชื่อมต่อกับ workflow automation เพื่อ auto-assign, auto-reply และ escalation เทคโนโลยี: React, Socket.IO, n8n, PostgreSQL, Ant Design, Emoji Picker. จุดเด่น: Real-time chat ด้วย Socket.IO — รองรับ 1-on-1 และ group chat; เชื่อมต่อ n8n workflow automation สำหรับ auto-reply และ chatbot scenarios; AI Agent context — ให้ AI เข้าถึงข้อมูลลูกค้าเพื่อตอบคำถามได้ตรงจุด; Emoji reactions และ rich text messaging; Chat room management — สร้าง/จัดการห้อง, invite members, pin messages; เพิ่ม engagement และลด response time ของ support team; Quick Reply templates สำหรับ common responses; Unread message tracking และ notification system."
+  },
+  {
+    "id": "project-Customer Portal",
+    "type": "project",
+    "title": "โปรเจกต์: Customer Portal",
+    "text": "โปรเจกต์ Customer Portal (Customer Service / Case Management). บทบาท: Solo Architect & Full Stack Developer — ออกแบบ architecture, schema และ UX flow เองทั้งหมด พัฒนาแบบ AI-first ด้วย Claude Code ผ่าน orchestrator + sub-agents เฉพาะทาง. Product ใหม่สำหรับจัดการ support case ครบ lifecycle — ตั้งแต่เปิดเคส, ติดตามสถานะ, Reopen จนถึงปิดเคส พร้อม Dashboard ภาพรวมในหน้าเดียว ออกแบบเป็น product แบบ modular สามารถขายพ่วงกับ CRM customer service หรือใช้แบบ standalone ได้ Build แบบ AI-first ด้วย Claude Code ตั้งแต่วาง architecture ไปจนถึง implementation เทคโนโลยี: Next.js 15, React 19, TypeScript, PostgreSQL, Prisma, Redis, Tailwind CSS, Ant Design, Docker, Nginx, Claude Code. จุดเด่น: จัดการ support case ครบ lifecycle — New case → Monitor → Reopen → Close ในที่เดียว; Dashboard ภาพรวมสถานะเคส — ติดตาม case status และ workload ได้จากหน้าเดียว; ออกแบบเป็น product แบบ modular — ขายพ่วงกับ CRM customer service หรือใช้แบบ standalone ก็ได้; Orchestrator route งานให้ sub-agents เฉพาะทางผ่าน dynamic pipeline — พัฒนาแบบ AI-first ด้วย Claude Code."
+  },
+  {
+    "id": "education",
+    "type": "education",
+    "title": "การศึกษา",
+    "text": "วิศวกรรมศาสตรบัณฑิต สาขา วิศวกรรมคอมพิวเตอร์, อีสเทิร์นเอเชีย (2012–2017, GPA 2.99)."
+  },
+  {
+    "id": "courses",
+    "type": "courses",
+    "title": "คอร์ส & การเรียนรู้",
+    "text": "คอร์สที่เรียน: n8n Workflow Automation (MSC (In-house)), Kiro AI-Powered IDE (MSC (In-house)), AI-Assisted Development Workflow (Self-study), Claude Code Agentic Development (Self-study). กำลังเรียนรู้: Agentic Development with Claude Code (sub-agent pipelines), System Design Patterns, Platform Engineering."
+  }
+]
