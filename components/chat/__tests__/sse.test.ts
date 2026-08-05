@@ -5,7 +5,7 @@
  * split across chunk boundaries, and Markdown payloads full of newlines.
  */
 import { describe, it, expect } from 'vitest'
-import { parseSSEFrame, readSSE } from '../sse'
+import { parseSSEFrame, readSSE, isToolStatus } from '../sse'
 
 /** Builds a ReadableStream that emits the given strings as separate chunks. */
 function streamOf(chunks: string[]): ReadableStream<Uint8Array> {
@@ -100,5 +100,38 @@ describe('readSSE', () => {
     const messages = await collect(streamOf(['event: done\ndata: {"text":"a"}']))
 
     expect(messages).toEqual([{ event: 'done', data: { text: 'a' } }])
+  })
+
+  it('exposes tool frames alongside the text frames', async () => {
+    const messages = await collect(
+      streamOf([
+        'event: tool\ndata: {"tool":"searchResume","phase":"start","id":"c1"}\n\n',
+        'event: chunk\ndata: {"text":"a"}\n\n',
+      ]),
+    )
+
+    expect(messages[0]).toEqual({
+      event: 'tool',
+      data: { tool: 'searchResume', phase: 'start', id: 'c1' },
+    })
+  })
+})
+
+describe('isToolStatus', () => {
+  it('accepts a well-formed payload', () => {
+    expect(isToolStatus({ tool: 'searchResume', phase: 'start' })).toBe(true)
+    expect(isToolStatus({ tool: 'searchResume', phase: 'end', count: 5 })).toBe(true)
+  })
+
+  it('accepts an unknown tool name — the client falls back, it does not reject', () => {
+    expect(isToolStatus({ tool: 'somethingNew', phase: 'start' })).toBe(true)
+  })
+
+  it('rejects malformed payloads', () => {
+    expect(isToolStatus(null)).toBe(false)
+    expect(isToolStatus('tool')).toBe(false)
+    expect(isToolStatus({ tool: 'searchResume' })).toBe(false)
+    expect(isToolStatus({ tool: 'searchResume', phase: 'bogus' })).toBe(false)
+    expect(isToolStatus({ phase: 'start' })).toBe(false)
   })
 })

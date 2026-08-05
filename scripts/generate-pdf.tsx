@@ -146,6 +146,16 @@ const styles = StyleSheet.create({
     padding: '2 6',
     borderRadius: 3,
   },
+  // Compact one-line form used for everything outside the Core Stack.
+  skillLine: {
+    fontSize: 8.5,
+    lineHeight: 1.5,
+    marginBottom: 1,
+  },
+  skillLineLabel: {
+    fontFamily: 'Sarabun',
+    fontWeight: 'bold',
+  },
   projectItem: {
     marginBottom: 14,
   },
@@ -186,6 +196,16 @@ const profileImagePath = `data:image/png;base64,${profileImageBuffer.toString('b
 //  PDF Document Component
 // ──────────────────────────────────────────
 
+/** Skill categories in print order, with the label the CV shows. `core` and
+ *  `softSkills` are handled separately, so they are deliberately absent. */
+const CATEGORY_LABELS: [keyof MeData['skills'] & ('languages' | 'frameworks' | 'databases' | 'devops' | 'tools'), string][] = [
+  ['languages', 'Languages'],
+  ['frameworks', 'Frameworks'],
+  ['databases', 'Databases'],
+  ['devops', 'DevOps'],
+  ['tools', 'Tools'],
+]
+
 function ResumePDF({ data }: { data: MeData }) {
   const { profile, contact, summary, skills, experience, projects, education, courses, learningNow, settings } = data
   const locale = settings.language === 'en' ? 'en-US' : 'th-TH'
@@ -219,34 +239,42 @@ function ResumePDF({ data }: { data: MeData }) {
           ))}
         </View>
 
-        {/* Skills */}
+        {/* Skills.
+            The CV keeps the tag chips for the Core Stack only. Every other
+            category collapses to one comma-separated line: same information,
+            a fraction of the vertical space, and the reader's eye lands on the
+            core stack instead of a wall of identical boxes. */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Skills</Text>
-          {Object.entries(skills).map(([category, items]) => {
-            if (category === 'softSkills') {
-              return (
-                <View key={category} style={{ marginBottom: 4 }}>
-                  <Text style={styles.skillCategory}>Soft Skills</Text>
-                  <View style={styles.skillRow}>
-                    {(items as string[]).map((s, i) => (
-                      <Text key={i} style={styles.skillTag}>{s}</Text>
-                    ))}
-                  </View>
-                </View>
-              )
-            }
-            const skillItems = items as { name: string; level: number }[]
-            return (
-              <View key={category} style={{ marginBottom: 4 }}>
-                <Text style={styles.skillCategory}>{category.charAt(0).toUpperCase() + category.slice(1)}</Text>
-                <View style={styles.skillRow}>
-                  {skillItems.map((s, i) => (
-                    <Text key={i} style={styles.skillTag}>{s.name}</Text>
-                  ))}
-                </View>
+
+          {skills.core && skills.core.length > 0 && (
+            <View style={{ marginBottom: 6 }}>
+              <Text style={styles.skillCategory}>Core Stack</Text>
+              <View style={styles.skillRow}>
+                {skills.core.map((s, i) => (
+                  <Text key={i} style={styles.skillTag}>{s}</Text>
+                ))}
               </View>
+            </View>
+          )}
+
+          {CATEGORY_LABELS.map(([key, label]) => {
+            const items = skills[key] as { name: string; level: number }[]
+            if (!items?.length) return null
+            return (
+              <Text key={key} style={styles.skillLine}>
+                <Text style={styles.skillLineLabel}>{label}: </Text>
+                {items.map((s) => s.name).join(', ')}
+              </Text>
             )
           })}
+
+          {skills.softSkills.length > 0 && (
+            <Text style={styles.skillLine}>
+              <Text style={styles.skillLineLabel}>Soft Skills: </Text>
+              {skills.softSkills.join(', ')}
+            </Text>
+          )}
         </View>
 
       </Page>
@@ -270,16 +298,9 @@ function ResumePDF({ data }: { data: MeData }) {
               {exp.responsibilities.slice(0, 4).map((r, j) => (
                 <Text key={j} style={styles.bulletItem}>- {r}</Text>
               ))}
-              {exp.techStack.length > 0 && (
-                <View style={{ marginTop: 3, paddingLeft: 16 }}>
-                  <Text style={styles.skillCategory}>Tech</Text>
-                  <View style={styles.skillRow}>
-                    {exp.techStack.map((tech, k) => (
-                      <Text key={k} style={styles.skillTag}>{tech}</Text>
-                    ))}
-                  </View>
-                </View>
-              )}
+              {/* No tech block here: an employer's techStack is the union of
+                  every project's, so on the CV it repeats the Skills page
+                  almost verbatim. The per-project lines below carry the detail. */}
             </View>
           ))}
         </View>
@@ -294,14 +315,14 @@ function ResumePDF({ data }: { data: MeData }) {
             <View key={i} style={styles.projectItem} wrap={false}>
               <Text style={styles.projectName}>{proj.name} - {proj.category}</Text>
               <Text style={styles.projectDesc}>{proj.description}</Text>
-              <View style={{ marginTop: 3 }}>
-                <Text style={styles.skillCategory}>Tech</Text>
-                <View style={styles.skillRow}>
-                  {proj.techStack.map((tech, k) => (
-                    <Text key={k} style={styles.skillTag}>{tech}</Text>
-                  ))}
-                </View>
-              </View>
+              {/* One comma-separated line rather than up to 19 chips. Nothing
+                  is dropped; it just stops eating half the page. */}
+              {proj.techStack.length > 0 && (
+                <Text style={styles.skillLine}>
+                  <Text style={styles.skillLineLabel}>Tech: </Text>
+                  {proj.techStack.join(', ')}
+                </Text>
+              )}
             </View>
           ))}
         </View>
@@ -324,27 +345,21 @@ function ResumePDF({ data }: { data: MeData }) {
           ))}
         </View>
 
-        {/* Courses & Training */}
-        {courses.length > 0 && (
+        {/* Courses & Training, with Currently Learning folded in under the
+            same heading (matches components/sections/Education.tsx). */}
+        {(courses.length > 0 || learningNow.length > 0) && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Courses & Training</Text>
             {courses.map((course, i) => (
               <Text key={i} style={styles.bulletItem}>
-                - {course.name} - {course.provider}
+                - {course.name}
               </Text>
             ))}
-          </View>
-        )}
-
-        {/* Learning Now */}
-        {learningNow.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Currently Learning</Text>
-            <View style={styles.skillRow}>
-              {learningNow.map((item, i) => (
-                <Text key={i} style={styles.skillTag}>{item}</Text>
-              ))}
-            </View>
+            {learningNow.map((item, i) => (
+              <Text key={`learning-${i}`} style={styles.bulletItem}>
+                - {item}
+              </Text>
+            ))}
           </View>
         )}
 

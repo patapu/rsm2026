@@ -74,6 +74,11 @@ export const SkillSchema = z.object({
 })
 
 export const SkillsSchema = z.object({
+  // The handful of technologies worth leading with. The PDF prints this as a
+  // "Core Stack" line and keeps the full categorised lists compact underneath,
+  // so a reader gets the headline without wading through every tag. Optional so
+  // older data still validates.
+  core: z.array(z.string().min(1)).optional(),
   languages: z.array(SkillSchema),
   frameworks: z.array(SkillSchema),
   databases: z.array(SkillSchema),
@@ -150,7 +155,9 @@ export const CtaSchema = z.object({
 
 export const CourseSchema = z.object({
   name: z.string().min(1),
-  provider: z.string().min(1),
+  // Optional: the provider is no longer shown anywhere (site, PDF, or RAG
+  // chunk), so entries omit it. Kept on the schema for older/imported data.
+  provider: z.string().min(1).optional(),
   year: z.number().int().min(2000).max(2100).optional(),
 })
 

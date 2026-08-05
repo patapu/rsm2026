@@ -41,7 +41,7 @@ const chunks: Chunk[] = []
 chunks.push({
   id: 'about',
   type: 'about',
-  title: `${ME.profile.firstNameTH} ${ME.profile.lastNameTH} — ${ME.profile.title}`,
+  title: `${ME.profile.firstNameTH} ${ME.profile.lastNameTH} ตำแหน่ง ${ME.profile.title}`,
   text: [
     `${ME.profile.firstNameTH} ${ME.profile.lastNameTH} (${ME.profile.nickname}), ตำแหน่ง ${ME.profile.title}.`,
     ME.profile.tagline,
@@ -86,7 +86,7 @@ chunks.push({
 for (const exp of ME.experience) {
   const roles = exp.roles.map((r) => `${r.title} (${r.startDate}–${r.endDate})`).join(', ')
   const achievements = exp.achievements
-    .map((a) => `${a.metric}: ${a.value}${a.context ? ` — ${a.context}` : ''}`)
+    .map((a) => `${a.metric}: ${a.value}${a.context ? ` (${a.context})` : ''}`)
     .join('; ')
   chunks.push({
     id: `experience-${exp.company}`,
@@ -138,7 +138,7 @@ chunks.push({
   id: 'courses',
   type: 'courses',
   title: 'คอร์ส & การเรียนรู้',
-  text: `คอร์สที่เรียน: ${ME.courses.map((c) => `${c.name} (${c.provider})`).join(', ')}. กำลังเรียนรู้: ${ME.learningNow.join(', ')}.`,
+  text: `คอร์สที่เรียน: ${ME.courses.map((c) => c.name).join(', ')}. กำลังเรียนรู้: ${ME.learningNow.join(', ')}.`,
 })
 
 // ── Write output ────────────────────────────────────────────────

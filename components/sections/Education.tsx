@@ -21,7 +21,7 @@ export default function Education() {
             <p className="text-foreground mb-2">{edu.field}</p>
             <div className="flex gap-3">
               <Chip variant="soft" size="sm" className="font-mono bg-[rgba(255,0,255,0.1)] border border-[rgba(255,0,255,0.3)] text-[#FF00FF]">
-                {edu.startYear} — {edu.endYear}
+                {edu.startYear} - {edu.endYear}
               </Chip>
               <Chip variant="soft" size="sm" className="font-mono bg-[rgba(255,0,255,0.1)] border border-[rgba(255,0,255,0.3)] text-[#FF00FF]">
                 GPA: {edu.gpa}
@@ -31,28 +31,21 @@ export default function Education() {
         ))}
       </div>
 
-      {/* Courses */}
-      {courses.length > 0 && (
+      {/* Courses and Currently Learning share one heading. `learningNow` keeps
+          the accent `primary` chip so "in progress" still reads at a glance
+          without needing a second heading of its own. */}
+      {(courses.length > 0 || learningNow.length > 0) && (
         <div className="mt-10">
           <h3 className="text-base font-mono font-semibold uppercase tracking-wider neon-text-cyan mb-4">📚 {t("education.coursesAndTraining")}</h3>
           <div className="flex flex-wrap gap-3">
             {courses.map((course) => (
               <Chip key={course.name} variant="soft" size="sm" className="font-mono bg-[rgba(255,0,255,0.1)] border border-[rgba(255,0,255,0.3)] text-[#FF00FF]">
-                {course.name} — {course.provider}
+                {course.name}
               </Chip>
             ))}
-          </div>
-        </div>
-      )}
-
-      {/* Learning Now */}
-      {learningNow.length > 0 && (
-        <div className="mt-8">
-          <h3 className="text-base font-mono font-semibold uppercase tracking-wider neon-text-cyan mb-4">🚀 {t("education.currentlyLearning")}</h3>
-          <div className="flex flex-wrap gap-3">
             {learningNow.map((item) => (
               <Chip key={item} variant="primary" size="sm" className="font-mono">
-                {item}
+                🚀 {item}
               </Chip>
             ))}
           </div>

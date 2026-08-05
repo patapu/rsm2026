@@ -107,6 +107,11 @@ const en = {
   'chat.inputPlaceholder': 'Type a message...',
   'chat.sendButton': 'Send',
 
+  // Live agent status, shown in place of the typing dots while a tool runs.
+  'chat.statusSearchingResume': 'Searching my resume...',
+  'chat.statusComposing': 'Putting the answer together...',
+  'chat.statusWorking': 'Working on it...',
+
   'chat.blocks.timelinePresent': 'Present',
 } as const
 
@@ -163,6 +168,10 @@ const th: Record<MessageKey, string> = {
   'chat.typingAriaLabel': 'กำลังพิมพ์',
   'chat.inputPlaceholder': 'พิมพ์ข้อความ...',
   'chat.sendButton': 'ส่ง',
+
+  'chat.statusSearchingResume': 'กำลังค้นข้อมูลในเรซูเม่...',
+  'chat.statusComposing': 'กำลังเรียบเรียงคำตอบ...',
+  'chat.statusWorking': 'กำลังทำงาน...',
 
   'chat.blocks.timelinePresent': 'ปัจจุบัน',
 }

@@ -4,9 +4,18 @@ import { Input, Button } from '@heroui/react'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import ChatMessage, { type ChatMessageData } from './ChatMessage'
-import { readSSE } from './sse'
+import { readSSE, isToolStatus } from './sse'
 import { useLocale } from '@/components/i18n/LocaleProvider'
-import { DEFAULT_LOCALE, translate, type Locale } from '@/lib/i18n'
+import { DEFAULT_LOCALE, translate, type Locale, type MessageKey } from '@/lib/i18n'
+
+/**
+ * Status text shown while a given tool runs. Keyed by the tool name the server
+ * sends, so a tool added server-side degrades to the generic status instead of
+ * breaking an older client.
+ */
+const TOOL_STATUS_KEYS: Record<string, MessageKey> = {
+  searchResume: 'chat.statusSearchingResume',
+}
 
 /**
  * Minimum gap between re-renders while a reply streams in. Model deltas can
@@ -94,6 +103,10 @@ export default function ChatInterface() {
   const [typedIndices, setTypedIndices] = useState<Set<number>>(new Set())
   // Index of the assistant message whose text is still arriving over SSE.
   const [streamingIndex, setStreamingIndex] = useState<number | null>(null)
+  // What the agent is doing right now, while nothing is renderable yet. Null
+  // until a `tool` frame arrives, so a stream that never calls a tool (and the
+  // JSON fallback) keeps the plain typing dots.
+  const [toolStatus, setToolStatus] = useState<MessageKey | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   // Aborts the in-flight request on unmount (and gives a future Stop button
@@ -169,6 +182,7 @@ export default function ChatInterface() {
     setInput('')
     setError(null)
     setIsLoading(true)
+    setToolStatus(null)
 
     const controller = new AbortController()
     abortRef.current = controller
@@ -212,6 +226,8 @@ export default function ChatInterface() {
         if (!started) {
           started = true
           setIsLoading(false)
+          // Real text has arrived: the status line has done its job.
+          setToolStatus(null)
           setMessages((prev) => {
             const index = prev.length
             // The stream itself is the reveal — mark the index typed so
@@ -230,7 +246,17 @@ export default function ChatInterface() {
       for await (const event of readSSE(response.body)) {
         const payload = event.data as { text?: string; error?: string } | undefined
 
-        if (event.event === 'chunk') {
+        if (event.event === 'tool') {
+          // Progress report from the agent. Ignored once text is flowing: the
+          // reply itself is better feedback than a status line.
+          if (!started && isToolStatus(event.data)) {
+            setToolStatus(
+              event.data.phase === 'start'
+                ? TOOL_STATUS_KEYS[event.data.tool] ?? 'chat.statusWorking'
+                : 'chat.statusComposing',
+            )
+          }
+        } else if (event.event === 'chunk') {
           text += payload?.text ?? ''
           const now = Date.now()
           if (!started || now - lastFlush >= STREAM_FLUSH_MS) {
@@ -267,6 +293,7 @@ export default function ChatInterface() {
       abortRef.current = null
       setIsLoading(false)
       setStreamingIndex(null)
+      setToolStatus(null)
     }
   }, [locale, t])
 
@@ -338,7 +365,10 @@ export default function ChatInterface() {
             <div className="flex justify-start mb-3">
               <div
                 className="bg-[rgba(255,0,255,0.1)] border border-[rgba(255,0,255,0.3)] rounded-lg px-3 py-2"
-                aria-label={t('chat.typingAriaLabel')}
+                // The status text replaces the label when present, otherwise a
+                // screen reader would hear "Typing" and never what the agent is
+                // actually doing.
+                aria-label={toolStatus ? t(toolStatus) : t('chat.typingAriaLabel')}
                 role="status"
               >
                 <div className="flex items-center gap-1.5">
@@ -355,6 +385,14 @@ export default function ChatInterface() {
                       }}
                     />
                   ))}
+                  {toolStatus && (
+                    <span
+                      data-testid="agent-status"
+                      className="ml-1.5 font-mono uppercase tracking-wider text-[11px] text-[#FF00FF]"
+                    >
+                      {t(toolStatus)}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

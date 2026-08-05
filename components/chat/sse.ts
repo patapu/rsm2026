@@ -25,6 +25,35 @@ export interface SSEMessage {
   data: unknown
 }
 
+/** Event names `app/api/chat/route.ts` emits. */
+export type ChatStreamEventName = 'chunk' | 'tool' | 'done' | 'error'
+
+/**
+ * Payload of a `tool` frame: what the agent is doing right now, so the UI can
+ * say so instead of showing seven seconds of undifferentiated typing dots.
+ *
+ * `tool` is the raw tool name rather than a rendered string, so adding a second
+ * tool server-side does not require a matching client release. An unrecognised
+ * name falls back to a generic status.
+ */
+export interface ToolStatusPayload {
+  /** Tool the agent invoked, e.g. `'searchResume'`. */
+  tool: string
+  /** `'start'` when the call begins, `'end'` on its result, `'error'` on failure. */
+  phase: 'start' | 'end' | 'error'
+  /** Provider tool-call id. Lets a future client track concurrent calls. */
+  id?: string
+  /** Number of results, when the tool returned a list. */
+  count?: number
+}
+
+/** Narrows a `tool` frame's payload, tolerating anything malformed. */
+export function isToolStatus(data: unknown): data is ToolStatusPayload {
+  if (typeof data !== 'object' || data === null) return false
+  const { tool, phase } = data as Partial<ToolStatusPayload>
+  return typeof tool === 'string' && (phase === 'start' || phase === 'end' || phase === 'error')
+}
+
 /**
  * Parses a single SSE frame (the text between two blank lines).
  * Returns `null` for frames that carry no `data` field — comments (`: ping`)

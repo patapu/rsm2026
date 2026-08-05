@@ -57,7 +57,7 @@ export default function TimelineChart({ data }: TimelineChartProps) {
     : formatMonthIndex(domainMax)
 
   const summary = `Timeline${data.title ? `: ${data.title}` : ''}. ${data.items
-    .map((it) => `${it.label}: ${it.start} to ${it.end}${it.detail ? ` — ${it.detail}` : ''}`)
+    .map((it) => `${it.label}: ${it.start} to ${it.end}${it.detail ? ` (${it.detail})` : ''}`)
     .join(', ')}`
 
   return (

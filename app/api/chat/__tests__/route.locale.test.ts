@@ -56,8 +56,8 @@ vi.mock('ai', () => ({
   // (they send no `Accept: text/event-stream`). Present so the mocked module
   // still satisfies the route's import list.
   streamText: vi.fn(() => ({
-    textStream: (async function* () {
-      yield 'ok'
+    stream: (async function* () {
+      yield { type: 'text-delta', id: 'text-1', text: 'ok' }
     })(),
   })),
   tool: (def: unknown) => def,

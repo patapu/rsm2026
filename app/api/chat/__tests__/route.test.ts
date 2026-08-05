@@ -62,12 +62,27 @@ vi.mock('@/lib/fingerprint', () => ({
 vi.mock('ai', () => ({
   generateText: vi.fn(async () => ({ text: 'สวัสดีครับ', steps: [] })),
   // `streamText` powers the SSE path (Accept: text/event-stream). It is
-  // synchronous and returns an object whose `textStream` is an async iterable of
-  // text deltas — the mock mirrors that shape so the route can consume it.
+  // synchronous and returns an object whose `stream` is an async iterable of
+  // parts — the mock mirrors a realistic RAG turn: the model calls searchResume,
+  // reads the result, then emits the reply text.
   streamText: vi.fn(() => ({
-    textStream: (async function* () {
-      yield 'สวัสดี'
-      yield 'ครับ'
+    stream: (async function* () {
+      yield { type: 'tool-input-start', id: 'call-1', toolName: 'searchResume' }
+      yield {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'searchResume',
+        input: { query: 'ประสบการณ์' },
+      }
+      yield {
+        type: 'tool-result',
+        toolCallId: 'call-1',
+        toolName: 'searchResume',
+        input: { query: 'ประสบการณ์' },
+        output: [{ title: 'a', content: 'x' }, { title: 'b', content: 'y' }],
+      }
+      yield { type: 'text-delta', id: 'text-1', text: 'สวัสดี' }
+      yield { type: 'text-delta', id: 'text-1', text: 'ครับ' }
     })(),
   })),
   tool: (def: unknown) => def,
@@ -830,11 +845,60 @@ describe('POST /api/chat — SSE streaming', () => {
     expect(vi.mocked(redis.ltrim)).toHaveBeenCalledWith(`chat:history:${VALID_TOKEN}`, -20, -1)
   })
 
-  it('reports a mid-stream failure as an error event, not an HTTP status', async () => {
+  it('announces the tool call before any text, then its result', async () => {
+    const body = await drain(await POST(makeStreamRequest()))
+
+    const toolFrames = body
+      .split('\n\n')
+      .filter((frame) => frame.startsWith('event: tool'))
+      .map((frame) => JSON.parse(frame.slice(frame.indexOf('data: ') + 6)))
+
+    expect(toolFrames).toEqual([
+      { tool: 'searchResume', phase: 'start', id: 'call-1' },
+      { tool: 'searchResume', phase: 'end', id: 'call-1', count: 2 },
+    ])
+    // The whole point: the visitor learns what the agent is doing BEFORE the
+    // first text delta lands seven seconds later.
+    expect(body.indexOf('event: tool')).toBeLessThan(body.indexOf('event: chunk'))
+  })
+
+  it('announces a tool call once even though two parts signal its start', async () => {
+    // The mock emits both `tool-input-start` and `tool-call` for call-1; only
+    // the first should reach the client.
+    const body = await drain(await POST(makeStreamRequest()))
+
+    expect(body.match(/"phase":"start"/g)).toHaveLength(1)
+  })
+
+  it('reports a non-fatal error part as an error event', async () => {
     vi.mocked(streamText).mockImplementationOnce(
       () =>
         ({
-          textStream: (async function* () {
+          stream: (async function* () {
+            yield { type: 'text-delta', id: 'text-1', text: 'partial' }
+            // Errors that do not kill the stream arrive as a part rather than
+            // being thrown, and `textStream` used to swallow them entirely.
+            yield { type: 'error', error: new Error('model unavailable') }
+          })(),
+        }) as never,
+    )
+
+    const res = await POST(makeStreamRequest())
+    const body = await drain(res)
+
+    expect(res.status).toBe(200)
+    expect(body).toContain('event: error')
+    expect(body).not.toContain('event: done')
+    // The partial reply is still saved, so history matches what was displayed.
+    const [, , aiMsg] = vi.mocked(redis.rpush).mock.calls[0] as [string, string, string]
+    expect(JSON.parse(aiMsg).content).toBe('partial')
+  })
+
+  it('reports a thrown mid-stream failure as an error event, not an HTTP status', async () => {
+    vi.mocked(streamText).mockImplementationOnce(
+      () =>
+        ({
+          stream: (async function* () {
             throw new Error('model unavailable')
           })(),
         }) as never,

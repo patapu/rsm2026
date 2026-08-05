@@ -17,13 +17,13 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 const TITLE: Record<Locale, string> = {
-  th: "ปกร เชาวนประเสริฐ — Lead Developer",
-  en: "Pakorn Chaowanaprasert — Lead Developer",
+  th: "ปกร เชาวนประเสริฐ | Lead Developer",
+  en: "Pakorn Chaowanaprasert | Lead Developer",
 };
 
 const DESCRIPTION: Record<Locale, string> = {
-  th: "Resume ของ ปกร เชาวนประเสริฐ (เกื้อ) — Lead Developer ที่มีประสบการณ์กว่า 8 ปี ในการพัฒนา CRM platform",
-  en: "Resume of Pakorn Chaowanaprasert (Kur) — a Lead Developer with 8+ years of experience building CRM platforms",
+  th: "Resume ของ ปกร เชาวนประเสริฐ (เกื้อ) Lead Developer ประสบการณ์ 8 ปี ด้านการพัฒนา CRM platform",
+  en: "Resume of Pakorn Chaowanaprasert (Kur), a Lead Developer with 8 years of experience building CRM platforms",
 };
 
 // Dynamic (locale depends on the `locale` cookie via `getServerLocale`) —

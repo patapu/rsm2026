@@ -186,7 +186,7 @@ function buildAgentOptions(opts: {
   // system prompt's greeting behavior kicks in. Preserved from the n8n design.
   const memoryContext = userMemory.length
     ? `[หัวข้อที่ผู้ใช้เคยถามในเซสชันนี้]: ${userMemory.join(', ')}`
-    : `[เซสชันใหม่ — ยังไม่มีหัวข้อที่เคยถาม ให้แนะนำตัวตามที่ระบบกำหนด]`
+    : `[เซสชันใหม่ ยังไม่มีหัวข้อที่เคยถาม ให้แนะนำตัวตามที่ระบบกำหนด]`
 
   // Explicit provider (reads the key Next loads from .env.local). gemini-2.5-flash
   // supports tool calling and is fast enough for an interactive chat.
@@ -201,7 +201,7 @@ function buildAgentOptions(opts: {
     tools: {
       searchResume: tool({
         description:
-          'ค้นหาข้อมูลเชิงลึกใน resume ของปกร — ประสบการณ์ทำงาน โปรเจกต์ ทักษะ การศึกษา. เรียกใช้เมื่อผู้ใช้ถามรายละเอียดที่ไม่มีในข้อมูลพื้นฐาน.',
+          'ค้นหาข้อมูลเชิงลึกใน resume ของปกร ทั้งประสบการณ์ทำงาน โปรเจกต์ ทักษะ และการศึกษา. เรียกใช้เมื่อผู้ใช้ถามรายละเอียดที่ไม่มีในข้อมูลพื้นฐาน.',
         inputSchema: z.object({
           query: z
             .string()
@@ -267,7 +267,7 @@ const encoder = new TextEncoder()
  * streaming Markdown safe: `JSON.stringify` escapes the newlines that would
  * otherwise terminate the frame in the middle of a reply.
  */
-function sseFrame(event: 'chunk' | 'done' | 'error', data: unknown): Uint8Array {
+function sseFrame(event: 'chunk' | 'tool' | 'done' | 'error', data: unknown): Uint8Array {
   return encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
 }
 
@@ -299,7 +299,7 @@ function streamReply(opts: {
       let full = ''
       let closed = false
 
-      const send = (event: 'chunk' | 'done' | 'error', data: unknown) => {
+      const send = (event: 'chunk' | 'tool' | 'done' | 'error', data: unknown) => {
         if (closed) return
         try {
           controller.enqueue(sseFrame(event, data))
@@ -321,12 +321,74 @@ function streamReply(opts: {
       try {
         const result = streamText({ ...agentOptions, abortSignal: signal })
 
-        // textStream yields only the text deltas, across every step — the tool
-        // round-trip happens transparently before the first delta appears.
-        for await (const delta of result.textStream) {
-          full += delta
-          send('chunk', { text: delta })
+        // The FULL part stream, not just `textStream`. `textStream` yields
+        // nothing until step 2 starts producing text, and step 1 (the model
+        // deciding to call searchResume, then embedding + querying pgvector) is
+        // measured at ~6.9s locally / ~11.5s in production. Forwarding the tool
+        // parts turns that dead air into visible progress.
+        //
+        // `result.stream` is used rather than the identically-typed
+        // `result.fullStream`, which ai v7 marks `@deprecated Use 'stream'
+        // instead`.
+        let streamFailed = false
+
+        // Two different parts can be the FIRST sign of a tool call, depending on
+        // what the provider emits: `tool-input-start` (the model has begun
+        // writing the call) and `tool-call` (the call is complete). Whichever
+        // lands first wins the announcement; the id stops the other from
+        // double-reporting the same call.
+        const announced = new Set<string>()
+
+        partLoop: for await (const part of result.stream) {
+          switch (part.type) {
+            case 'text-delta':
+              full += part.text
+              send('chunk', { text: part.text })
+              break
+
+            case 'tool-input-start':
+              if (!announced.has(part.id)) {
+                announced.add(part.id)
+                send('tool', { tool: part.toolName, phase: 'start', id: part.id })
+              }
+              break
+
+            case 'tool-call':
+              if (!announced.has(part.toolCallId)) {
+                announced.add(part.toolCallId)
+                send('tool', { tool: part.toolName, phase: 'start', id: part.toolCallId })
+              }
+              break
+
+            case 'tool-result':
+              send('tool', {
+                tool: part.toolName,
+                phase: 'end',
+                id: part.toolCallId,
+                count: Array.isArray(part.output) ? part.output.length : undefined,
+              })
+              break
+
+            case 'tool-error':
+              console.error(part.error)
+              send('tool', { tool: part.toolName, phase: 'error', id: part.toolCallId })
+              break
+
+            case 'error':
+              // `textStream` swallowed these; the part stream surfaces them.
+              // Only errors that KILL the stream are thrown, so a non-fatal
+              // model error has to be promoted by hand.
+              console.error(part.error)
+              streamFailed = true
+              break partLoop
+
+            case 'abort':
+              // Client hung up. Whatever arrived so far is still worth keeping.
+              break partLoop
+          }
         }
+
+        if (streamFailed) throw new Error('model stream reported an error')
 
         await persistTurn({ message, reply: full, memoryKey, userMemory, historyKey })
         send('done', { text: full })

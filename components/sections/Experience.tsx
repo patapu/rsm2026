@@ -33,7 +33,7 @@ export default function Experience() {
                 </Chip>
               )}
               <span className="text-foreground-500 text-sm">
-                {exp.startDate} — {exp.endDate}
+                {exp.startDate} - {exp.endDate}
               </span>
             </div>
 
@@ -50,7 +50,7 @@ export default function Experience() {
                     <div key={i} className="flex items-center gap-2 text-sm">
                       <span className="text-foreground font-medium">{role.title}</span>
                       <span className="text-foreground-500">
-                        ({role.startDate} — {role.endDate})
+                        ({role.startDate} - {role.endDate})
                       </span>
                     </div>
                   ))}
@@ -83,7 +83,7 @@ export default function Experience() {
                   <li key={i} className="text-sm text-foreground flex items-start gap-2">
                     <span className="text-[#00FFFF] font-mono mt-0.5">{">"}</span>
                     <span>
-                      {ach.metric}: <strong>{ach.value}</strong> — {ach.context}
+                      {ach.metric}: <strong>{ach.value}</strong> ({ach.context})
                     </span>
                   </li>
                 ))}

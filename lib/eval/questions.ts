@@ -49,16 +49,16 @@ export const EVAL_QUESTIONS: EvalQuestion[] = [
     expectedChunkIds: [
       'project-S-CRM Platform',
       'project-Full-S-CRM (Next-S-CRM)',
-      'project-CRM Lead & Opportunity Management',
-      'project-CRM Case Management & Field Service',
-      'project-CRM Quotation & Sales Order',
+      // The three separate CRM chunks (Lead & Opportunity / Quotation & Sales
+      // Order / Case Management & Field Service) were merged into one.
+      'project-CRM Core Modules (S-CRM)',
     ],
   },
   {
     id: 'q-approval',
     question: 'เคยทำระบบ approval workflow หลายขั้นที่ไหน',
     category: 'ambiguous',
-    expectedChunkIds: ['project-CP-Meiji Material Request', 'project-CRM Case Management & Field Service'],
+    expectedChunkIds: ['project-CP-Meiji Material Request', 'project-CRM Core Modules (S-CRM)'],
   },
   {
     id: 'q-nextjs',

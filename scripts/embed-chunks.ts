@@ -84,7 +84,19 @@ async function main() {
       )
       stored++
     }
-    console.log(`✅ Stored ${stored} rows in resume_chunks\n`)
+    console.log(`✅ Stored ${stored} rows in resume_chunks`)
+
+    // Upserting alone leaves ORPHANS behind: a chunk that existed in an earlier
+    // build (e.g. three CRM project chunks later merged into one) keeps its row
+    // forever, so retrieval can still surface text that no longer exists in
+    // `ME`. Delete anything not in the current build so the table is an exact
+    // mirror of chunks.json.
+    const { rowCount: removed } = await pool.query(
+      `DELETE FROM resume_chunks WHERE id <> ALL($1::text[])`,
+      [chunks.map((c) => c.id)],
+    )
+    if (removed) console.log(`🧹 Removed ${removed} stale row(s) no longer in chunks.json`)
+    console.log()
 
     // ── Step C: PROVE retrieval works ───────────────────────────
     // Embed a real question as a QUERY, then ask pgvector for the 3 nearest
