@@ -38,7 +38,7 @@
   {
     "id": "skills-soft",
     "type": "skills",
-    "title": "ทักษะเชิงระบบ / Soft skills",
+    "title": "ทักษะเชิงระบบ: Soft skills",
     "text": "ทักษะเชิงระบบและการทำงาน: Config-driven System Design / Team Leadership & Code Review Culture / Database Schema Design & Migration Planning / แปลง business requirement เป็น technical solution / Cross-project Code Sharing & Reusable Architecture / CRM Domain Expertise (Sales, Marketing, Service, Field Service) / Multi-tenant SaaS Architecture Design / Real-time System Design (WebSocket, Event-driven) / AI-Assisted Development ด้วย Claude Code."
   },
   {

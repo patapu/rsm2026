@@ -330,7 +330,7 @@ describe('ChatInterface', () => {
     // The status also becomes the accessible name, replacing "Typing".
     expect(screen.getByRole('status', { name: 'Searching my resume...' })).toBeTruthy()
 
-    // Tool finished, reply not composed yet.
+    // Tool finished with no topics worth showing: the generic status stands.
     await act(async () => {
       controllerRef!.enqueue(
         encoder.encode('event: tool\ndata: {"tool":"searchResume","phase":"end","id":"c1"}\n\n'),
@@ -351,6 +351,67 @@ describe('ChatInterface', () => {
       expect(screen.getByTestId('message-assistant').textContent).toBe('สวัสดี')
     })
     expect(screen.queryByTestId('agent-status')).toBeNull()
+  })
+
+  it('names the retrieved topics while composing, accumulating across two calls', async () => {
+    const encoder = new TextEncoder()
+    let controllerRef: ReadableStreamDefaultController<Uint8Array> | null = null
+
+    mockFetch.mockImplementation((url: string, options?: any) => {
+      if (url === '/api/auth/fingerprint') {
+        return Promise.resolve({ ok: true, status: 200, json: async () => ({}) })
+      }
+      if (url === '/api/chat' && (!options || options.method !== 'POST')) {
+        return Promise.resolve({ ok: true, status: 200, json: async () => ({ messages: [] }) })
+      }
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        headers: { get: () => 'text/event-stream' },
+        body: new ReadableStream({
+          start(controller) {
+            controllerRef = controller
+            controller.enqueue(
+              encoder.encode(
+                'event: tool\ndata: {"tool":"searchResume","phase":"end","id":"c1",' +
+                  '"topics":["S-CRM Platform","DevOps & Cloud"]}\n\n',
+              ),
+            )
+          },
+        }),
+      })
+    })
+
+    await act(async () => {
+      render(<ChatInterface />)
+    })
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('chat-input'), { target: { value: 'projects?' } })
+    })
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('chat-send'))
+    })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('agent-status').textContent).toBe(
+        'Putting together: S-CRM Platform · DevOps & Cloud',
+      )
+    })
+
+    // A second searchResume call in the same turn. Topics accumulate and
+    // dedupe, but only the first two are shown, so the line does not churn.
+    await act(async () => {
+      controllerRef!.enqueue(
+        encoder.encode(
+          'event: tool\ndata: {"tool":"searchResume","phase":"end","id":"c2",' +
+            '"topics":["DevOps & Cloud","MSC"]}\n\n',
+        ),
+      )
+    })
+
+    expect(screen.getByTestId('agent-status').textContent).toBe(
+      'Putting together: S-CRM Platform · DevOps & Cloud',
+    )
   })
 
   it('falls back to the generic status for an unrecognised tool name', async () => {

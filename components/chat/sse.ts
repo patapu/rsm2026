@@ -45,6 +45,13 @@ export interface ToolStatusPayload {
   id?: string
   /** Number of results, when the tool returned a list. */
   count?: number
+  /**
+   * Short, already display-ready topics drawn from what the tool retrieved,
+   * so the status can say what the reply is about. Omitted (never empty) when
+   * there is nothing worth showing, which is what makes an older client and
+   * the no-topic case behave identically.
+   */
+  topics?: string[]
 }
 
 /** Narrows a `tool` frame's payload, tolerating anything malformed. */

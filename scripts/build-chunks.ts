@@ -77,7 +77,11 @@ for (const [label, list] of skillGroups) {
 chunks.push({
   id: 'skills-soft',
   type: 'skills',
-  title: 'ทักษะเชิงระบบ / Soft skills',
+  // Colon, not " / ": the chat status line strips the label before a colon
+  // when the visitor is reading in English, so this renders as "Soft skills"
+  // there and "ทักษะเชิงระบบ Soft skills" in Thai. With a slash it survived
+  // whole and an English reader got mixed script.
+  title: 'ทักษะเชิงระบบ: Soft skills',
   text: `ทักษะเชิงระบบและการทำงาน: ${ME.skills.softSkills.join(' / ')}.`,
 })
 

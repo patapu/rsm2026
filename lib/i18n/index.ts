@@ -110,6 +110,7 @@ const en = {
   // Live agent status, shown in place of the typing dots while a tool runs.
   'chat.statusSearchingResume': 'Searching my resume...',
   'chat.statusComposing': 'Putting the answer together...',
+  'chat.statusComposingTopics': 'Putting together: {topics}',
   'chat.statusWorking': 'Working on it...',
 
   'chat.blocks.timelinePresent': 'Present',
@@ -171,6 +172,7 @@ const th: Record<MessageKey, string> = {
 
   'chat.statusSearchingResume': 'กำลังค้นข้อมูลในเรซูเม่...',
   'chat.statusComposing': 'กำลังเรียบเรียงคำตอบ...',
+  'chat.statusComposingTopics': 'กำลังเรียบเรียงเรื่อง {topics}',
   'chat.statusWorking': 'กำลังทำงาน...',
 
   'chat.blocks.timelinePresent': 'ปัจจุบัน',

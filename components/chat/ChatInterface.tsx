@@ -18,6 +18,13 @@ const TOOL_STATUS_KEYS: Record<string, MessageKey> = {
 }
 
 /**
+ * Retrieval topics shown in the composing status. The server carries up to
+ * three per frame; two is what fits on one line on a phone, and an overview
+ * with more than two items stops reading as an overview.
+ */
+const TOPICS_SHOWN = 2
+
+/**
  * Minimum gap between re-renders while a reply streams in. Model deltas can
  * land faster than Markdown can be re-parsed; coalescing them keeps the reveal
  * smooth without noticeably lagging behind the text.
@@ -107,6 +114,9 @@ export default function ChatInterface() {
   // until a `tool` frame arrives, so a stream that never calls a tool (and the
   // JSON fallback) keeps the plain typing dots.
   const [toolStatus, setToolStatus] = useState<MessageKey | null>(null)
+  // What the retrieval turned up, for the composing status. Accumulated across
+  // every searchResume call in the turn.
+  const [statusTopics, setStatusTopics] = useState<string[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   // Aborts the in-flight request on unmount (and gives a future Stop button
@@ -183,6 +193,7 @@ export default function ChatInterface() {
     setError(null)
     setIsLoading(true)
     setToolStatus(null)
+    setStatusTopics([])
 
     const controller = new AbortController()
     abortRef.current = controller
@@ -228,6 +239,7 @@ export default function ChatInterface() {
           setIsLoading(false)
           // Real text has arrived: the status line has done its job.
           setToolStatus(null)
+          setStatusTopics([])
           setMessages((prev) => {
             const index = prev.length
             // The stream itself is the reveal — mark the index typed so
@@ -250,11 +262,22 @@ export default function ChatInterface() {
           // Progress report from the agent. Ignored once text is flowing: the
           // reply itself is better feedback than a status line.
           if (!started && isToolStatus(event.data)) {
+            const { phase, topics } = event.data
             setToolStatus(
-              event.data.phase === 'start'
+              phase === 'start'
                 ? TOOL_STATUS_KEYS[event.data.tool] ?? 'chat.statusWorking'
                 : 'chat.statusComposing',
             )
+            if (Array.isArray(topics) && topics.length > 0) {
+              // A turn can run searchResume more than once. Accumulate rather
+              // than replace, and keep first-seen order: the line is an
+              // overview, and text that churns mid-wait reads worse than text
+              // that simply stands still.
+              setStatusTopics((prev) => [
+                ...prev,
+                ...topics.filter((topic) => !prev.includes(topic)),
+              ])
+            }
           }
         } else if (event.event === 'chunk') {
           text += payload?.text ?? ''
@@ -294,6 +317,7 @@ export default function ChatInterface() {
       setIsLoading(false)
       setStreamingIndex(null)
       setToolStatus(null)
+      setStatusTopics([])
     }
   }, [locale, t])
 
@@ -307,6 +331,17 @@ export default function ChatInterface() {
   // Empty-state is only shown once history has loaded — otherwise returning
   // users see a flash of the empty prompt before their previous messages render.
   const showEmptyState = isHistoryLoaded && messages.length === 0 && !isBusy
+
+  // Status keys are held rather than rendered strings so a locale switch
+  // mid-request still resolves correctly. Topics upgrade the generic composing
+  // line to a specific one; without them it stays exactly as it was.
+  const statusLabel = !toolStatus
+    ? null
+    : toolStatus === 'chat.statusComposing' && statusTopics.length > 0
+      ? t('chat.statusComposingTopics', {
+          topics: statusTopics.slice(0, TOPICS_SHOWN).join(' · '),
+        })
+      : t(toolStatus)
 
   return (
     <div className="flex flex-col h-[calc(100vh-64px)]" data-testid="chat-interface">
@@ -368,7 +403,7 @@ export default function ChatInterface() {
                 // The status text replaces the label when present, otherwise a
                 // screen reader would hear "Typing" and never what the agent is
                 // actually doing.
-                aria-label={toolStatus ? t(toolStatus) : t('chat.typingAriaLabel')}
+                aria-label={statusLabel ?? t('chat.typingAriaLabel')}
                 role="status"
               >
                 <div className="flex items-center gap-1.5">
@@ -385,12 +420,16 @@ export default function ChatInterface() {
                       }}
                     />
                   ))}
-                  {toolStatus && (
+                  {statusLabel && (
                     <span
                       data-testid="agent-status"
-                      className="ml-1.5 font-mono uppercase tracking-wider text-[11px] text-[#FF00FF]"
+                      // An explicit max-width is what makes `truncate` fire.
+                      // The bubble is a flex item sized by its content, so
+                      // without a cap here a long topic list would push the
+                      // bubble past the viewport instead of ellipsising.
+                      className="ml-1.5 min-w-0 max-w-[15rem] sm:max-w-md truncate font-mono uppercase tracking-wider text-[11px] text-[#FF00FF]"
                     >
-                      {t(toolStatus)}
+                      {statusLabel}
                     </span>
                   )}
                 </div>

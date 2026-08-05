@@ -79,7 +79,10 @@ vi.mock('ai', () => ({
         toolCallId: 'call-1',
         toolName: 'searchResume',
         input: { query: 'ประสบการณ์' },
-        output: [{ title: 'a', content: 'x' }, { title: 'b', content: 'y' }],
+        output: [
+          { title: 'โปรเจกต์: S-CRM Platform', content: 'x' },
+          { title: 'ทักษะ: DevOps & Cloud', content: 'y' },
+        ],
       }
       yield { type: 'text-delta', id: 'text-1', text: 'สวัสดี' }
       yield { type: 'text-delta', id: 'text-1', text: 'ครับ' }
@@ -94,7 +97,7 @@ vi.mock('ai', () => ({
 //  Imports after mocks
 // ──────────────────────────────────────────
 
-import { POST } from '../route'
+import { POST, toStatusTopics } from '../route'
 import { redis } from '@/lib/redis'
 import { verifyToken } from '@/lib/fingerprint'
 import { generateText, streamText } from 'ai'
@@ -855,11 +858,30 @@ describe('POST /api/chat — SSE streaming', () => {
 
     expect(toolFrames).toEqual([
       { tool: 'searchResume', phase: 'start', id: 'call-1' },
-      { tool: 'searchResume', phase: 'end', id: 'call-1', count: 2 },
+      {
+        tool: 'searchResume',
+        phase: 'end',
+        id: 'call-1',
+        count: 2,
+        // Site default locale is English, so the Thai category words are
+        // dropped and only the proper nouns survive.
+        topics: ['S-CRM Platform', 'DevOps & Cloud'],
+      },
     ])
     // The whole point: the visitor learns what the agent is doing BEFORE the
     // first text delta lands seven seconds later.
     expect(body.indexOf('event: tool')).toBeLessThan(body.indexOf('event: chunk'))
+  })
+
+  it('keeps the Thai category label when the visitor asked for Thai', async () => {
+    const req = makeRequest(
+      { message: VALID_MESSAGE, locale: 'th' },
+      { fp_token: VALID_TOKEN },
+      { Accept: 'text/event-stream' },
+    )
+    const body = await drain(await POST(req))
+
+    expect(body).toContain('"topics":["โปรเจกต์ S-CRM Platform","ทักษะ DevOps & Cloud"]')
   })
 
   it('announces a tool call once even though two parts signal its start', async () => {
@@ -923,5 +945,55 @@ describe('POST /api/chat — SSE streaming', () => {
 
     expect(res.headers.get('content-type')).toContain('application/json')
     expect(await res.json()).toHaveProperty('reply')
+  })
+})
+
+// ──────────────────────────────────────────
+//  toStatusTopics — retrieval topics for the status line
+// ──────────────────────────────────────────
+
+describe('toStatusTopics', () => {
+  const chunk = (title: string) => ({ title, content: 'irrelevant' })
+
+  it('replaces the label colon with a space in Thai', () => {
+    expect(toStatusTopics([chunk('ประสบการณ์: MSC')], 'th')).toEqual(['ประสบการณ์ MSC'])
+    expect(toStatusTopics([chunk('โปรเจกต์: S-CRM Platform')], 'th')).toEqual([
+      'โปรเจกต์ S-CRM Platform',
+    ])
+  })
+
+  it('keeps a title that carries no label', () => {
+    expect(toStatusTopics([chunk('การศึกษา')], 'th')).toEqual(['การศึกษา'])
+  })
+
+  it('drops the Thai label in English and keeps the proper noun', () => {
+    expect(toStatusTopics([chunk('ทักษะ: DevOps & Cloud')], 'en')).toEqual(['DevOps & Cloud'])
+  })
+
+  it('drops a Thai-only title in English rather than showing Thai to an English reader', () => {
+    expect(toStatusTopics([chunk('การศึกษา')], 'en')).toEqual([])
+  })
+
+  it('drops a title long enough to be a sentence', () => {
+    // The profile chunk, which reads as a statement rather than a topic.
+    const profile = 'ปกร เชาวนประเสริฐ ตำแหน่ง Lead Developer'
+    expect(toStatusTopics([chunk(profile)], 'th')).toEqual([])
+    expect(toStatusTopics([chunk(profile)], 'en')).toEqual([])
+  })
+
+  it('carries at most three topics', () => {
+    const output = ['a', 'b', 'c', 'd', 'e'].map((n) => chunk(`ทักษะ: ${n}`))
+    expect(toStatusTopics(output, 'en')).toEqual(['a', 'b', 'c'])
+  })
+
+  it('dedupes repeated titles', () => {
+    const output = [chunk('ทักษะ: DevOps'), chunk('ทักษะ: DevOps'), chunk('ทักษะ: Cloud')]
+    expect(toStatusTopics(output, 'en')).toEqual(['DevOps', 'Cloud'])
+  })
+
+  it('returns nothing for output that is not a list of titled chunks', () => {
+    expect(toStatusTopics(undefined, 'th')).toEqual([])
+    expect(toStatusTopics('not a list', 'th')).toEqual([])
+    expect(toStatusTopics([null, {}, { title: 42 }], 'th')).toEqual([])
   })
 })

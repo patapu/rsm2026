@@ -271,6 +271,65 @@ function sseFrame(event: 'chunk' | 'tool' | 'done' | 'error', data: unknown): Ui
   return encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
 }
 
+// ──────────────────────────────────────────
+//  Retrieval topics for the live status line
+// ──────────────────────────────────────────
+
+/** Topics carried in one `tool` frame. The client shows fewer. */
+const MAX_STATUS_TOPICS = 3
+/** Past this length a chunk title is a sentence, not a topic. */
+const MAX_TOPIC_LENGTH = 32
+/** Splits `"ประสบการณ์: MSC"` into its category label and the rest. */
+const TITLE_PREFIX_RE = /^(.{1,20}?):\s*(.+)$/
+
+/**
+ * Turns a searchResume result into a short list of topics for the "composing"
+ * status line, so it can say WHAT it is writing about during the ~5.5s gap
+ * between the tool returning and the first text delta.
+ *
+ * The material is the chunk TITLES, which are Pakorn's own section names from
+ * `scripts/build-chunks.ts`. The tool INPUT (the model's search query) is
+ * deliberately not used: it is model-generated phrasing and reads like it.
+ *
+ * Exported for tests.
+ */
+export function toStatusTopics(output: unknown, locale: Locale): string[] {
+  if (!Array.isArray(output)) return []
+
+  const topics: string[] = []
+
+  for (const item of output) {
+    const raw = (item as { title?: unknown } | null)?.title
+    if (typeof raw !== 'string') continue
+
+    const title = raw.trim()
+    const match = TITLE_PREFIX_RE.exec(title)
+    const rest = match?.[2] ?? title
+
+    let topic: string
+    if (locale === 'en') {
+      // Chunk titles are built from the Thai dataset whatever locale was
+      // requested. A Thai category word tells an English reader nothing, so
+      // keep only the proper noun, and only when there is one left to keep.
+      if (!/[A-Za-z0-9]/.test(rest)) continue
+      topic = rest
+    } else {
+      // Keep the category, drop the colon. A bare "MSC" is cryptic, but
+      // "ประสบการณ์: MSC" nested inside the status sentence reads badly.
+      topic = match ? `${match[1]} ${rest}` : rest
+    }
+
+    topic = topic.trim()
+    if (!topic || topic.length > MAX_TOPIC_LENGTH) continue
+    if (topics.includes(topic)) continue
+
+    topics.push(topic)
+    if (topics.length === MAX_STATUS_TOPICS) break
+  }
+
+  return topics
+}
+
 /**
  * Streams the agent's reply as `text/event-stream`.
  *
@@ -291,8 +350,9 @@ function streamReply(opts: {
   historyKey: string
   cors: Record<string, string>
   signal: AbortSignal
+  locale: Locale
 }): Response {
-  const { agentOptions, message, memoryKey, userMemory, historyKey, cors, signal } = opts
+  const { agentOptions, message, memoryKey, userMemory, historyKey, cors, signal, locale } = opts
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -360,14 +420,20 @@ function streamReply(opts: {
               }
               break
 
-            case 'tool-result':
+            case 'tool-result': {
+              // `topics` is omitted rather than sent empty when nothing
+              // survives filtering, so the client falls back to the generic
+              // status without having to special-case an empty array.
+              const topics = toStatusTopics(part.output, locale)
               send('tool', {
                 tool: part.toolName,
                 phase: 'end',
                 id: part.toolCallId,
                 count: Array.isArray(part.output) ? part.output.length : undefined,
+                ...(topics.length > 0 ? { topics } : {}),
               })
               break
+            }
 
             case 'tool-error':
               console.error(part.error)
@@ -546,6 +612,7 @@ export async function POST(req: NextRequest) {
       historyKey,
       cors,
       signal: req.signal,
+      locale,
     })
   }
 
