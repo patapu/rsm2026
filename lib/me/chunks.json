@@ -30,10 +30,10 @@
     "text": "ทักษะด้าน DevOps & Cloud ของ Kur: Docker (80/100), Nginx (75/100), Jenkins (70/100), Kubernetes (65/100)."
   },
   {
-    "id": "skills-เครื่องมือ & AI",
+    "id": "skills-Tools & AI",
     "type": "skills",
-    "title": "ทักษะ: เครื่องมือ & AI",
-    "text": "ทักษะด้าน เครื่องมือ & AI ของ Kur: Git (90/100), n8n (75/100), Figma (60/100), GitHub Copilot (70/100), Kiro (AI IDE) (75/100), Claude Code (85/100)."
+    "title": "ทักษะ: Tools & AI",
+    "text": "ทักษะด้าน Tools & AI ของ Kur: Git (90/100), n8n (75/100), Figma (60/100), GitHub Copilot (70/100), Kiro (AI IDE) (75/100), Claude Code (85/100)."
   },
   {
     "id": "skills-soft",

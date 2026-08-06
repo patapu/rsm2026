@@ -60,7 +60,12 @@ const skillGroups: Array<[string, { name: string; level: number }[]]> = [
   ['Frameworks & Libraries', ME.skills.frameworks],
   ['ฐานข้อมูล', ME.skills.databases],
   ['DevOps & Cloud', ME.skills.devops],
-  ['เครื่องมือ & AI', ME.skills.tools],
+  // Latin, not 'เครื่องมือ & AI': the chat status line keeps a title for an
+  // English reader whenever any Latin character survives, and "AI" alone was
+  // enough to let the Thai through. Same reason the soft-skills title uses a
+  // colon. The other Thai labels here carry no Latin at all, so they are
+  // correctly dropped for English readers rather than leaking.
+  ['Tools & AI', ME.skills.tools],
 ]
 for (const [label, list] of skillGroups) {
   chunks.push({
