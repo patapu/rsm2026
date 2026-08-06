@@ -6,10 +6,10 @@
     "text": "ปกร เชาวนประเสริฐ (Kur), ตำแหน่ง Lead Developer. ตั้งใจสร้างระบบที่ scale ได้จริง และเขียน code ที่เพื่อนร่วมทีมอ่านต่อได้สบาย ประสบการณ์ 8+ ปี. สวัสดีครับ ผมเป็น Lead Developer ประสบการณ์ 8 ปี งานที่ทำมีทั้งออกแบบ architecture วาง database schema ดูแล production และนำทีมทำ CRM platform ให้ลูกค้าองค์กรมากกว่า 15 ราย เช่น Millennium Auto และ CP-Meiji ส่วนที่ผมชอบที่สุดคือการทำระบบ config-driven ที่ทีมเอาไปต่อยอดเองได้โดยไม่ต้องรอ dev ช่วงหลังผมทำงานแบบ AI-first ใช้ Claude Code เป็นเครื่องมือหลักครับ จุดเด่น: ทำ CRM platform ให้ลูกค้าองค์กร 15+ ราย แต่ละรายตั้ง config ของตัวเองบน codebase เดียว / ทำระบบ config-driven ที่ลดเวลาสร้างหน้าใหม่จาก 2-3 วัน เหลือ 2-3 ชั่วโมง / ดูแลงานเองทั้ง architecture, dev, deploy และ migration / นำทีม dev 5 คน วาง code review culture ให้คุณภาพงานนิ่ง / วาง CI/CD ด้วย Docker, Nginx, Jenkins, Kubernetes รันบน Azure และ IBM Cloud / ทำ CRM กว่า 90 หน้า ครอบคลุมงานหลายส่วน เช่น Lead, Opportunity ไปจนถึง Customer 360 / ทำ real-time feature ด้วย Socket.IO เช่น chat, AI chatbot, live notification"
   },
   {
-    "id": "skills-ภาษาโปรแกรม",
+    "id": "skills-Programming Languages",
     "type": "skills",
-    "title": "ทักษะ: ภาษาโปรแกรม",
-    "text": "ทักษะด้าน ภาษาโปรแกรม ของ Kur: JavaScript (90/100), TypeScript (80/100), PHP (60/100)."
+    "title": "ทักษะ: Programming Languages",
+    "text": "ทักษะด้าน Programming Languages ของ Kur: JavaScript (90/100), TypeScript (80/100), PHP (60/100)."
   },
   {
     "id": "skills-Frameworks & Libraries",
@@ -18,10 +18,10 @@
     "text": "ทักษะด้าน Frameworks & Libraries ของ Kur: React (90/100), Next.js (85/100), Node.js (80/100), Ant Design (90/100), Material-UI (75/100), Vue.js (65/100), Prisma (80/100), Socket.IO (75/100)."
   },
   {
-    "id": "skills-ฐานข้อมูล",
+    "id": "skills-Databases",
     "type": "skills",
-    "title": "ทักษะ: ฐานข้อมูล",
-    "text": "ทักษะด้าน ฐานข้อมูล ของ Kur: PostgreSQL (85/100), MySQL (70/100), Redis (85/100)."
+    "title": "ทักษะ: Databases",
+    "text": "ทักษะด้าน Databases ของ Kur: PostgreSQL (85/100), MySQL (70/100), Redis (85/100)."
   },
   {
     "id": "skills-DevOps & Cloud",
@@ -110,7 +110,7 @@
   {
     "id": "education",
     "type": "education",
-    "title": "การศึกษา",
+    "title": "Education",
     "text": "วิศวกรรมศาสตรบัณฑิต สาขา วิศวกรรมคอมพิวเตอร์, อีสเทิร์นเอเชีย (2012–2017, GPA 2.99)."
   },
   {

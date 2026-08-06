@@ -31,8 +31,8 @@ export interface EvalQuestion {
 
 export const EVAL_QUESTIONS: EvalQuestion[] = [
   // ── easy: single clear target ──────────────────────────────────
-  { id: 'q-languages', question: 'ถนัดภาษาโปรแกรมอะไรบ้าง', category: 'easy', expectedChunkIds: ['skills-ภาษาโปรแกรม'] },
-  { id: 'q-databases', question: 'ใช้ฐานข้อมูลอะไรได้บ้าง', category: 'easy', expectedChunkIds: ['skills-ฐานข้อมูล'] },
+  { id: 'q-languages', question: 'ถนัดภาษาโปรแกรมอะไรบ้าง', category: 'easy', expectedChunkIds: ['skills-Programming Languages'] },
+  { id: 'q-databases', question: 'ใช้ฐานข้อมูลอะไรได้บ้าง', category: 'easy', expectedChunkIds: ['skills-Databases'] },
   { id: 'q-devops', question: 'ถนัด Docker กับ Kubernetes แค่ไหน', category: 'easy', expectedChunkIds: ['skills-DevOps & Cloud'] },
   { id: 'q-education', question: 'เรียนจบอะไรมา', category: 'easy', expectedChunkIds: ['education'] },
   { id: 'q-courses', question: 'เคยเรียนคอร์สอะไรมาบ้าง', category: 'easy', expectedChunkIds: ['courses'] },

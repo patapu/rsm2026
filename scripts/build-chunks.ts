@@ -55,16 +55,21 @@ chunks.push({
 // a question about "databases" should retrieve the DB chunk, not dilute the
 // match with devops/tools noise. This is a core chunking-size tradeoff —
 // too coarse = irrelevant text rides along; too fine = context gets fragmented.
+// These labels are deliberately all Latin. The chat status line names the
+// retrieved topics to the visitor, and it keeps a title for an English reader
+// only when some Latin survives stripping the Thai category prefix. A label
+// like 'เครื่องมือ & AI' leaked Thai through on the strength of "AI" alone,
+// while a label with no Latin at all, such as 'ฐานข้อมูล', was dropped and
+// the English visitor saw nothing. Latin labels avoid both, and Thai renders
+// them as-is, which is how these terms are normally written in Thai anyway.
+// The label is also interpolated into the chunk id below, so renaming one
+// renames its id; embed-chunks deletes the orphan, and any id listed in
+// lib/eval/questions.ts must be updated in the same change.
 const skillGroups: Array<[string, { name: string; level: number }[]]> = [
-  ['ภาษาโปรแกรม', ME.skills.languages],
+  ['Programming Languages', ME.skills.languages],
   ['Frameworks & Libraries', ME.skills.frameworks],
-  ['ฐานข้อมูล', ME.skills.databases],
+  ['Databases', ME.skills.databases],
   ['DevOps & Cloud', ME.skills.devops],
-  // Latin, not 'เครื่องมือ & AI': the chat status line keeps a title for an
-  // English reader whenever any Latin character survives, and "AI" alone was
-  // enough to let the Thai through. Same reason the soft-skills title uses a
-  // colon. The other Thai labels here carry no Latin at all, so they are
-  // correctly dropped for English readers rather than leaking.
   ['Tools & AI', ME.skills.tools],
 ]
 for (const [label, list] of skillGroups) {
@@ -138,7 +143,8 @@ for (const proj of ME.projects) {
 chunks.push({
   id: 'education',
   type: 'education',
-  title: 'การศึกษา',
+  // Latin for the same reason as the skill group labels above.
+  title: 'Education',
   text: ME.education
     .map((e) => `${e.degree} สาขา ${e.field}, ${e.institution} (${e.startYear}–${e.endYear}, GPA ${e.gpa}).`)
     .join(' '),
