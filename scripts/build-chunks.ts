@@ -146,7 +146,11 @@ chunks.push({
 chunks.push({
   id: 'courses',
   type: 'courses',
-  title: 'คอร์ส & การเรียนรู้',
+  // Latin, matching the Tools & AI / DevOps & Cloud labels: a title with no
+  // Latin character at all is dropped from the chat status line for English
+  // readers, so this one used to vanish for them entirely. Thai renders the
+  // English label as-is, which is how the other groups already read.
+  title: 'Courses & Learning',
   text: `คอร์สที่เรียน: ${ME.courses.map((c) => c.name).join(', ')}. กำลังเรียนรู้: ${ME.learningNow.join(', ')}.`,
 })
 
