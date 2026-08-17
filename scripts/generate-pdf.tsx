@@ -85,6 +85,11 @@ const styles = StyleSheet.create({
     color: colors.muted,
     alignItems: 'baseline',
   },
+  contactWebsite: {
+    fontSize: 9,
+    color: colors.accent,
+    marginTop: 3,
+  },
   section: {
     marginBottom: 14,
   },
@@ -227,6 +232,9 @@ function ResumePDF({ data }: { data: MeData }) {
               <Text>{contact.phone}</Text>
               <Text>{profile.location}</Text>
             </View>
+            {contact.website && (
+              <Text style={styles.contactWebsite}>{contact.website.replace(/^https?:\/\//, '')}</Text>
+            )}
           </View>
         </View>
 

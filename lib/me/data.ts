@@ -22,7 +22,8 @@ export const rawMeData = {
   contact: {
     email: "patapuputapa@gmail.com",
     phone: "0885797989",
-    // linkedin / website intentionally omitted until available
+    website: "https://resume.kurpakorn.com",
+    // linkedin intentionally omitted until available
   },
 
   summary: {
