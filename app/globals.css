@@ -64,20 +64,56 @@ body {
   background-color: #05050a;
   background-image:
     radial-gradient(ellipse at 20% 0%, rgba(255, 0, 255, 0.12) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 100%, rgba(0, 255, 255, 0.10) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, rgba(0, 255, 255, 0.10) 0%, transparent 50%);
+  background-size: 100% 100%, 100% 100%;
+  background-attachment: fixed;
+}
+
+/* Drifting 40px grid, on its own fixed layer.
+
+   The grid used to be two more background layers on `body`, drifted by
+   animating `background-position`. That is not a compositable property, and on
+   a `background-attachment: fixed` background it forces a full viewport repaint
+   on the main thread every single frame, forever. The tab burned CPU and GPU
+   while sitting completely idle, which is what made the whole machine feel
+   sluggish with the site merely open. Drifting `transform` instead keeps the
+   same motion but lets the compositor run it without repainting anything.
+
+   It lives on `html::before` because both of body's pseudo elements are already
+   spent, on the scanlines and the vignette. `z-index: -1` places it above the
+   canvas background (body's background propagates to the canvas, since `html`
+   itself declares none) and below every element on the page.
+
+   `inset: -40px` oversizes the layer by one whole grid cell on each side so the
+   40px drift never drags an unpainted edge into view. Fixed position boxes do
+   not extend the viewport's scrollable area, so the negative inset costs no
+   scrollbars. */
+html::before {
+  content: "";
+  position: fixed;
+  inset: -40px;
+  pointer-events: none;
+  z-index: -1;
+  background-image:
     linear-gradient(rgba(0, 255, 255, 0.04) 1px, transparent 1px),
     linear-gradient(90deg, rgba(0, 255, 255, 0.04) 1px, transparent 1px);
-  background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
-  background-attachment: fixed;
+  background-size: 40px 40px, 40px 40px;
   animation: bg-drift 30s ease-in-out infinite alternate;
 }
 
 @keyframes bg-drift {
-  0%   { background-position: 0% 0%, 0% 0%, 0 0, 0 0; }
-  100% { background-position: 0% 0%, 0% 0%, 40px 40px, 40px 40px; }
+  0%   { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(40px, 40px, 0); }
 }
 
-/* Scanlines overlay — fixed full-screen */
+/* Scanlines overlay, fixed full-screen.
+
+   No `mix-blend-mode: multiply` here. The lines are pure black with alpha, and
+   for pure black the multiply result is arithmetically identical to plain
+   source-over compositing: both land on backdrop * (1 - alpha). The blend mode
+   bought nothing visually while forcing the browser to re-blend everything
+   underneath this full-screen layer on every frame, on top of the backdrop
+   filter panels it sits above. */
 body::before {
   content: "";
   position: fixed;
@@ -91,7 +127,6 @@ body::before {
     rgba(0, 0, 0, 0.18)  3px,
     rgba(0, 0, 0, 0.18)  4px
   );
-  mix-blend-mode: multiply;
 }
 
 /* Vignette overlay */

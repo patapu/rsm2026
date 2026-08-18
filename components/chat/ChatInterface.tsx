@@ -131,10 +131,16 @@ export default function ChatInterface() {
   const isBusyRef = useRef(false)
   isBusyRef.current = isBusy
 
-  // Auto-scroll to bottom when messages change.
+  // Auto-scroll to bottom when messages change. While a reply is arriving,
+  // `messages` changes on every coalesced delta, so a smooth scroll per delta
+  // starts an animation that the next delta cancels mid-flight. Every frame of
+  // those animations repaints the whole viewport (fixed animated background,
+  // full-screen blend overlay, backdrop-filter panels), which is what makes the
+  // page crawl while it streams. So: jump instantly while tokens are landing,
+  // and only ease into place once the message has settled.
   useEffect(() => {
     if (messagesEndRef.current && typeof messagesEndRef.current.scrollIntoView === 'function') {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
+      messagesEndRef.current.scrollIntoView({ behavior: isBusyRef.current ? 'auto' : 'smooth' })
     }
   }, [messages])
 

@@ -15,6 +15,13 @@ import { usePathname } from "next/navigation"
  * This version keeps `opacity` high (≥ 0.55) and uses only filter + translate,
  * so content stays visible throughout — no compositor-level "nothing on top
  * of body" frame, no flicker.
+ *
+ * Why no `style={{ willChange }}`: an inline will-change is permanent, and this
+ * wrapper wraps the entire page. Declaring `will-change: filter` here pinned a
+ * filter pipeline and its own compositing layer for the whole document for as
+ * long as the tab stayed open, long after the 0.2s transition had finished.
+ * framer-motion already sets will-change while an animation is in flight and
+ * clears it afterwards, which is the behaviour we actually wanted.
  */
 const glitchVariants: Variants = {
   initial: {
@@ -51,7 +58,6 @@ export default function PageTransition({ children }: PageTransitionProps) {
         initial="initial"
         animate="animate"
         exit="exit"
-        style={{ willChange: "filter, opacity, transform" }}
       >
         {children}
       </motion.div>
