@@ -12,6 +12,9 @@
  *  - a request with `locale: 'en'` is accepted
  *  - a request omitting `locale` still works (defaults to 'en')
  *  - the system prompt differs between 'en' and 'th'
+ *  - the reply language follows the LANGUAGE OF THE QUESTION, not the site
+ *    locale: an English question on the Thai site is answered in English,
+ *    and a Thai question on the English site is answered in Thai
  *  - calling with 'th' then 'en' then 'th' produces the correct prompt each
  *    time (guards the cross-request prompt-cache bug: the base prompt is
  *    cached once, but the locale directive must never leak between requests)
@@ -65,7 +68,7 @@ vi.mock('ai', () => ({
   embed: vi.fn(),
 }))
 
-import { POST, getSystemPrompt } from '../route'
+import { POST, getSystemPrompt, detectMessageLocale, resolveReplyLocale } from '../route'
 import { generateText } from 'ai'
 
 const VALID_TOKEN = 'a'.repeat(64)
@@ -106,7 +109,7 @@ describe('getSystemPrompt', () => {
   })
 
   it('th prompt contains the Thai-response directive', () => {
-    expect(getSystemPrompt('th')).toContain('ตอบเป็นภาษาไทยเสมอ')
+    expect(getSystemPrompt('th')).toContain('ตอบเป็นภาษาไทยทั้งหมด')
   })
 
   it('en prompt contains the English-response directive', () => {
@@ -141,43 +144,97 @@ describe('POST /api/chat — locale handling', () => {
     expect(res.status).toBe(400)
   })
 
-  it('hands the model the en-specific system prompt when locale is en', async () => {
+  it('answers an English question with the en system prompt', async () => {
     await POST(makeRequest({ message: 'hello', locale: 'en' }))
     expect(capturedSystems[0].startsWith(getSystemPrompt('en'))).toBe(true)
     expect(capturedSystems[0]).toContain('Respond in English')
   })
 
-  it('hands the model the th-specific system prompt when locale is th', async () => {
-    await POST(makeRequest({ message: 'hello', locale: 'th' }))
+  it('answers a Thai question with the th system prompt', async () => {
+    await POST(makeRequest({ message: 'สวัสดีครับ', locale: 'th' }))
     expect(capturedSystems[0].startsWith(getSystemPrompt('th'))).toBe(true)
-    expect(capturedSystems[0]).toContain('ตอบเป็นภาษาไทยเสมอ')
+    expect(capturedSystems[0]).toContain('ตอบเป็นภาษาไทยทั้งหมด')
+  })
+
+  it('answers an English question in English even when the site locale is th', async () => {
+    await POST(makeRequest({ message: 'what have you worked on?', locale: 'th' }))
+    expect(capturedSystems[0].startsWith(getSystemPrompt('en'))).toBe(true)
+  })
+
+  it('answers a Thai question in Thai even when the site locale is en', async () => {
+    await POST(makeRequest({ message: 'มีประสบการณ์อะไรบ้างครับ', locale: 'en' }))
+    expect(capturedSystems[0].startsWith(getSystemPrompt('th'))).toBe(true)
+  })
+
+  it('keeps its technical nouns in English without switching language', async () => {
+    // The single most common shape of a Thai question here. Latin letters in
+    // it must not flip the reply to English.
+    await POST(makeRequest({ message: 'เคยใช้ React กับ Next.js ไหม', locale: 'th' }))
+    expect(capturedSystems[0].startsWith(getSystemPrompt('th'))).toBe(true)
+  })
+
+  it('falls back to the site locale when the message carries no letters', async () => {
+    await POST(makeRequest({ message: '???', locale: 'th' }))
+    expect(capturedSystems[0].startsWith(getSystemPrompt('th'))).toBe(true)
   })
 
   it("does not poison the cached prompt across requests: th -> en -> th all produce the correct locale-specific prompt", async () => {
-    await POST(makeRequest({ message: 'msg 1', locale: 'th' }))
-    await POST(makeRequest({ message: 'msg 2', locale: 'en' }))
-    await POST(makeRequest({ message: 'msg 3', locale: 'th' }))
+    await POST(makeRequest({ message: 'ข้อความที่หนึ่ง', locale: 'th' }))
+    await POST(makeRequest({ message: 'message two', locale: 'en' }))
+    await POST(makeRequest({ message: 'ข้อความที่สาม', locale: 'th' }))
 
     expect(capturedSystems).toHaveLength(3)
     expect(capturedSystems[0].startsWith(getSystemPrompt('th'))).toBe(true)
     expect(capturedSystems[1].startsWith(getSystemPrompt('en'))).toBe(true)
     expect(capturedSystems[2].startsWith(getSystemPrompt('th'))).toBe(true)
-    // The 1st and 3rd (both th) must be identical, and different from the en one.
+    // The 1st and 3rd (both th) must carry the same prompt, and a different
+    // one from the en request.
     expect(capturedSystems[0]).toBe(capturedSystems[2])
     expect(capturedSystems[0]).not.toBe(capturedSystems[1])
   })
 
-  it('the me facts handed to the model reflect the requested locale (en differs from th)', async () => {
+  it('the me facts handed to the model follow the language of the question', async () => {
     // The locale-specific `me` data is embedded into the system prompt (the
     // "always-on facts" block) rather than sent as a separate n8n `me` payload.
-    // en and th datasets diverge (title/tagline/bio + locale directive), so the
-    // two system strings must not be identical.
+    // en and th datasets diverge (title/tagline/bio + locale directive), so a
+    // question asked in each language must not produce the same system string.
     await POST(makeRequest({ message: 'hi', locale: 'en' }))
-    await POST(makeRequest({ message: 'hi', locale: 'th' }))
+    await POST(makeRequest({ message: 'สวัสดี', locale: 'en' }))
 
     expect(capturedSystems).toHaveLength(2)
     expect(capturedSystems[0]).toBeTruthy()
     expect(capturedSystems[1]).toBeTruthy()
     expect(capturedSystems[0]).not.toBe(capturedSystems[1])
+  })
+})
+
+describe('detectMessageLocale', () => {
+  it('reads a pure Thai message as th', () => {
+    expect(detectMessageLocale('สวัสดีครับ')).toBe('th')
+  })
+
+  it('reads a pure English message as en', () => {
+    expect(detectMessageLocale('what is your experience?')).toBe('en')
+  })
+
+  it('reads a Thai message containing English tech nouns as th', () => {
+    expect(detectMessageLocale('เคยใช้ React กับ Docker ไหม')).toBe('th')
+  })
+
+  it('returns null when there is no letter to judge by', () => {
+    expect(detectMessageLocale('???')).toBeNull()
+    expect(detectMessageLocale('2026')).toBeNull()
+  })
+})
+
+describe('resolveReplyLocale', () => {
+  it('follows the question over the site locale, both directions', () => {
+    expect(resolveReplyLocale('hello there', 'th')).toBe('en')
+    expect(resolveReplyLocale('สวัสดีครับ', 'en')).toBe('th')
+  })
+
+  it('falls back to the site locale when the message says nothing', () => {
+    expect(resolveReplyLocale('???', 'th')).toBe('th')
+    expect(resolveReplyLocale('???', 'en')).toBe('en')
   })
 })

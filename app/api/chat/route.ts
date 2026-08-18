@@ -83,11 +83,53 @@ function getComponentInstructions(): string {
   return cachedComponentInstructions
 }
 
-const LOCALE_DIRECTIVE: Record<Locale, string> = {
-  en: '\n\nRespond in English regardless of the language of the question.',
-  th: '\n\nตอบเป็นภาษาไทยเสมอ ไม่ว่าคำถามจะเป็นภาษาอะไร',
+// ──────────────────────────────────────────
+//  Reply language
+// ──────────────────────────────────────────
+
+/** The Thai Unicode block. */
+const THAI_CHAR_RE = /[\u0E00-\u0E7F]/
+/** Any Latin letter. Only consulted once the message is known to carry no Thai. */
+const LATIN_CHAR_RE = /[A-Za-z]/
+
+/**
+ * The language the visitor actually wrote in, or `null` when the message has
+ * no letters to judge by (an emoji, a bare number, a lone '?').
+ *
+ * Thai beats Latin on a mixed message by design. Thai questions keep their
+ * technical nouns in English ('มีประสบการณ์ React ไหม'), so Latin letters say
+ * nothing about the language of the question, while one Thai character does.
+ *
+ * Exported for tests.
+ */
+export function detectMessageLocale(message: string): Locale | null {
+  if (THAI_CHAR_RE.test(message)) return 'th'
+  if (LATIN_CHAR_RE.test(message)) return 'en'
+  return null
 }
 
+/**
+ * The language the reply is written in: the language of the QUESTION, falling
+ * back to the site locale only when the message gives nothing to go on.
+ *
+ * Deliberately not the site locale. A visitor reading the Thai site who types
+ * an English question gets an English answer, and the other way round.
+ *
+ * Exported for tests.
+ */
+export function resolveReplyLocale(message: string, siteLocale: Locale): Locale {
+  return detectMessageLocale(message) ?? siteLocale
+}
+
+const LOCALE_DIRECTIVE: Record<Locale, string> = {
+  en: '\n\nThe visitor asked in English. Respond in English. Write the whole reply in English, headings and block content included.',
+  th: '\n\nผู้ใช้ถามเป็นภาษาไทย ให้ตอบเป็นภาษาไทยทั้งหมด รวมถึงหัวข้อและเนื้อหาใน block (technical term คงเป็นภาษาอังกฤษได้)',
+}
+
+/**
+ * `locale` here is the REPLY language resolved by `resolveReplyLocale`, not
+ * the site's UI language.
+ */
 export function getSystemPrompt(locale: Locale = DEFAULT_LOCALE): string {
   return getBaseSystemPrompt() + '\n\n' + getComponentInstructions() + LOCALE_DIRECTIVE[locale]
 }
@@ -554,7 +596,12 @@ export async function POST(req: NextRequest) {
   }
 
   const { message, locale } = parsed.data
-  const meData = getMeForLocale(locale)
+
+  // `locale` is the site's UI language. The REPLY follows the language of the
+  // question instead, so an English question typed on the Thai site is answered
+  // in English, and answered from the English dataset.
+  const replyLocale = resolveReplyLocale(message, locale)
+  const meData = getMeForLocale(replyLocale)
 
   // 3. Rate limit check (keyed by IP + visitorId to resist cookie-swap evasion)
   const rateLimitKey = keys.rateLimit(visitorId, ip)
@@ -590,7 +637,7 @@ export async function POST(req: NextRequest) {
   }
 
   // 6. Get system prompt (base cached, locale directive appended per-request)
-  const systemPrompt = getSystemPrompt(locale)
+  const systemPrompt = getSystemPrompt(replyLocale)
   console.log({ instructionsLength: systemPrompt.length, hasInstructions: systemPrompt.length > 0 })
 
   // 7. Build the RAG tool-calling agent call (Vercel AI SDK).
@@ -612,6 +659,8 @@ export async function POST(req: NextRequest) {
       historyKey,
       cors,
       signal: req.signal,
+      // The UI locale, not `replyLocale`: these topics are interpolated into a
+      // status sentence the client renders in its own UI language.
       locale,
     })
   }

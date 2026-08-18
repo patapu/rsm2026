@@ -66,12 +66,12 @@ describe('getSystemPrompt — composition', () => {
   it("'en' locale gets the English directive, not the Thai one", () => {
     const result = getSystemPrompt('en')
     expect(result).toContain('Respond in English')
-    expect(result).not.toContain('ตอบเป็นภาษาไทยเสมอ')
+    expect(result).not.toContain('ตอบเป็นภาษาไทยทั้งหมด')
   })
 
   it("'th' locale gets the Thai directive, not the English one", () => {
     const result = getSystemPrompt('th')
-    expect(result).toContain('ตอบเป็นภาษาไทยเสมอ')
+    expect(result).toContain('ตอบเป็นภาษาไทยทั้งหมด')
     expect(result).not.toContain('Respond in English')
   })
 
@@ -88,13 +88,13 @@ describe('getSystemPrompt — no cross-request locale leak (th -> en -> th)', ()
     const en1 = getSystemPrompt('en')
     const th2 = getSystemPrompt('th')
 
-    expect(th1).toContain('ตอบเป็นภาษาไทยเสมอ')
+    expect(th1).toContain('ตอบเป็นภาษาไทยทั้งหมด')
     expect(th1).not.toContain('Respond in English')
 
     expect(en1).toContain('Respond in English')
-    expect(en1).not.toContain('ตอบเป็นภาษาไทยเสมอ')
+    expect(en1).not.toContain('ตอบเป็นภาษาไทยทั้งหมด')
 
-    expect(th2).toContain('ตอบเป็นภาษาไทยเสมอ')
+    expect(th2).toContain('ตอบเป็นภาษาไทยทั้งหมด')
     expect(th2).not.toContain('Respond in English')
 
     // The two th calls are identical — no accumulation/mutation across calls.
@@ -102,9 +102,9 @@ describe('getSystemPrompt — no cross-request locale leak (th -> en -> th)', ()
 
     // Base + component text is identical across locales (module-level cache
     // shared correctly); only the trailing locale directive differs.
-    const th1WithoutDirective = th1.replace('\n\nตอบเป็นภาษาไทยเสมอ ไม่ว่าคำถามจะเป็นภาษาอะไร', '')
+    const th1WithoutDirective = th1.replace('\n\nผู้ใช้ถามเป็นภาษาไทย ให้ตอบเป็นภาษาไทยทั้งหมด รวมถึงหัวข้อและเนื้อหาใน block (technical term คงเป็นภาษาอังกฤษได้)', '')
     const en1WithoutDirective = en1.replace(
-      '\n\nRespond in English regardless of the language of the question.',
+      '\n\nThe visitor asked in English. Respond in English. Write the whole reply in English, headings and block content included.',
       '',
     )
     expect(th1WithoutDirective).toBe(en1WithoutDirective)
