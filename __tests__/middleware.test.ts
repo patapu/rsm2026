@@ -3,7 +3,9 @@
  * Covers:
  *   Sub-task 4.1 — Property 5: Pentest Path Blocking (fast-check)
  *   Sub-task 4.2 — Property 6: Pentest UA Blocking (fast-check)
- *   Sub-task 4.3 — Property 7: IP Blacklist Enforcement (fast-check)
+ *   Sub-task 4.3 — Property 7: IP Blacklist Enforcement (fast-check), which
+ *                  middleware now only has to stay out of the way of: the
+ *                  check lives in the route handlers, not here
  *   Sub-task 4.4 — Property 14: Middleware Check Order Invariant (fast-check)
  *   Sub-task 4.5 — Unit tests for middleware.ts
  * Requirements: 14.1, 14.2, 14.3, 18.1, 18.2, 18.5, 18.8, 18.9, 18.10
@@ -266,25 +268,33 @@ describe('Property 6: Pentest UA Blocking', () => {
 // ──────────────────────────────────────────
 
 // Feature: resume-website, Property 7: IP Blacklist Enforcement
-describe('Property 7: IP Blacklist Enforcement', () => {
+//
+// The blacklist itself is no longer enforced here. Middleware runs on the Edge
+// Runtime, which cannot use ioredis, so the check moved into the Node route
+// handlers (see the note at the top of middleware.ts). What is asserted below
+// is the half of the contract middleware still owns: it must not reach for
+// Redis at all, and it must pass a blocked IP on rather than swallowing it.
+// The 403 itself is covered by the route tests, in
+// app/api/chat/__tests__/route.test.ts and
+// app/api/auth/fingerprint/__tests__/route.test.ts.
+describe('Property 7: IP Blacklist Enforcement (enforced in the route handlers)', () => {
   it(
-    'returns 403 immediately for any blocked IP (before path/UA/cookie checks)',
+    'never consults Redis, whatever the IP',
     async () => {
       // Validates: Requirements 14.3, 18.5
       await fc.assert(
         fc.asyncProperty(
           fc.ipV4(),
           async (ip) => {
-            // Mock Redis to return a truthy value for this IP's blocked key
-            vi.mocked(redis.get).mockImplementation(async (key) => {
-              if (key === `blocked:${ip}`) return '1'
-              return null
-            })
+            vi.mocked(redis.get).mockClear()
 
-            // Use a normal path and normal UA — only the IP should trigger the block
-            const req = makeRequest('/api/chat', { ip })
-            const res = await middleware(req)
-            return res.status === 403
+            const req = makeRequest('/api/chat', {
+              ip,
+              cookies: { fp_token: 'a'.repeat(64) },
+            })
+            await middleware(req)
+
+            return vi.mocked(redis.get).mock.calls.length === 0
           },
         ),
         { numRuns: 100 },
@@ -293,9 +303,8 @@ describe('Property 7: IP Blacklist Enforcement', () => {
   )
 
   it(
-    'blocked IP returns 403 even with a valid fp_token cookie',
+    'passes a blocked IP through, leaving the 403 to the route handler',
     async () => {
-      // Validates: Requirements 18.5 — IP check happens before cookie guard
       await fc.assert(
         fc.asyncProperty(
           fc.ipV4(),
@@ -304,15 +313,14 @@ describe('Property 7: IP Blacklist Enforcement', () => {
               if (key === `blocked:${ip}`) return '1'
               return null
             })
-            vi.mocked(verifyToken).mockReturnValue(true)
 
-            const validToken = 'a'.repeat(64)
             const req = makeRequest('/api/chat', {
               ip,
-              cookies: { fp_token: validToken },
+              cookies: { fp_token: 'a'.repeat(64) },
             })
             const res = await middleware(req)
-            return res.status === 403
+
+            return res.status === 200
           },
         ),
         { numRuns: 100 },
@@ -320,7 +328,6 @@ describe('Property 7: IP Blacklist Enforcement', () => {
     },
   )
 })
-
 // ──────────────────────────────────────────
 //  Sub-task 4.4: Property 14 — Middleware Check Order Invariant
 // ──────────────────────────────────────────
@@ -376,16 +383,19 @@ describe('middleware unit tests', () => {
   // ── IP Blacklist ──────────────────────────────────────────────────────────
 
   describe('IP blacklist', () => {
-    it('blocks a request from a blocked IP with 403', async () => {
-      // Requirements: 14.3
+    it('leaves a blocked IP to the route handler instead of blocking it here', async () => {
+      // Requirements: 14.3. The Edge Runtime has no ioredis, so middleware
+      // cannot know the IP is blocked. It must not pretend otherwise.
       vi.mocked(redis.get).mockResolvedValue('1')
 
-      const req = makeRequest('/api/chat', { ip: '1.2.3.4' })
+      const req = makeRequest('/api/chat', {
+        ip: '1.2.3.4',
+        cookies: { fp_token: 'a'.repeat(64) },
+      })
       const res = await middleware(req)
 
-      expect(res.status).toBe(403)
-      const body = await res.json()
-      expect(body).toEqual({ error: 'Forbidden' })
+      expect(res.status).toBe(200)
+      expect(redis.get).not.toHaveBeenCalled()
     })
 
     it('allows a request from a non-blocked IP', async () => {
@@ -606,15 +616,16 @@ describe('middleware unit tests', () => {
       expect(res.status).not.toBe(401)
     })
 
-    it('blocked IP + no cookie on /api/chat → 403 (not 401)', async () => {
-      // Requirements: 18.10
+    it('blocked IP + no cookie on /api/chat → 401 from the cookie guard', async () => {
+      // Requirements: 18.10. The 403 for a blocked IP now comes from the route
+      // handler, one layer later. The cookie guard is the first check
+      // middleware can fail on, so that is the status it must return.
       vi.mocked(redis.get).mockResolvedValue('1')
 
       const req = makeRequest('/api/chat', { ip: '10.0.0.1' })
       const res = await middleware(req)
 
-      expect(res.status).toBe(403)
-      expect(res.status).not.toBe(401)
+      expect(res.status).toBe(401)
     })
   })
 

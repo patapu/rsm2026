@@ -92,8 +92,11 @@ let capturedSystems: string[]
 beforeEach(() => {
   vi.clearAllMocks()
   capturedSystems = []
-  vi.mocked(generateText).mockImplementation(async (opts: { system?: string }) => {
-    capturedSystems.push(opts.system ?? '')
+  vi.mocked(generateText).mockImplementation(async (opts) => {
+    // `system` is typed as string | SystemModelMessage upstream. The route
+    // only ever passes a string, and a narrowing check keeps that honest
+    // without casting the whole callback signature away.
+    capturedSystems.push(typeof opts.system === 'string' ? opts.system : '')
     return { text: 'ok', steps: [] } as never
   })
 

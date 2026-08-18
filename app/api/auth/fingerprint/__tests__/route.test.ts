@@ -6,7 +6,7 @@
  * Requirements: 9.2, 9.3, 9.4, 9.5
  */
 
-import { vi, describe, it, expect, beforeEach } from 'vitest'
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest'
 import fc from 'fast-check'
 import { NextRequest } from 'next/server'
 
@@ -18,12 +18,16 @@ vi.mock('@/lib/redis', () => ({
   redis: {
     set: vi.fn().mockResolvedValue('OK'),
     get: vi.fn().mockResolvedValue(null),
+    // The route counts mints per IP before it will issue a new token.
+    incr: vi.fn().mockResolvedValue(1),
+    expire: vi.fn().mockResolvedValue(1),
   },
   keys: {
     session: (id: string) => `session:${id}`,
     memory: (id: string) => `memory:${id}`,
     history: (id: string) => `chat:history:${id}`,
     rateLimit: (id: string) => `ratelimit:${id}`,
+    fpMint: (ip: string) => `fp-mint:${ip}`,
     blocked: (ip: string) => `blocked:${ip}`,
   },
 }))
@@ -61,6 +65,15 @@ function makeRequest(body: object, cookies: Record<string, string> = {}) {
   return req
 }
 
+/** Same as `makeRequest`, plus arbitrary headers (used for x-forwarded-for). */
+function makeRequestWithHeaders(body: object, headers: Record<string, string>) {
+  return new NextRequest('http://localhost/api/auth/fingerprint', {
+    method: 'POST',
+    body: JSON.stringify(body),
+    headers: { 'Content-Type': 'application/json', ...headers },
+  })
+}
+
 const VALID_BODY = { ua: 'Mozilla/5.0', lang: 'th-TH', screenHint: '1920x1080' }
 const VALID_TOKEN = 'a'.repeat(64) // matches /^[0-9a-f]{64}$/
 
@@ -72,6 +85,15 @@ beforeEach(() => {
   vi.clearAllMocks()
   // Default: verifyToken returns true for 64-char hex, false otherwise
   vi.mocked(verifyToken).mockImplementation((token: string) => /^[0-9a-f]{64}$/.test(token))
+  // Default: first mint of the hour for this IP, and nothing blacklisted.
+  vi.mocked(redis.incr).mockResolvedValue(1)
+  vi.mocked(redis.expire).mockResolvedValue(1)
+  vi.mocked(redis.get).mockResolvedValue(null)
+  delete process.env.FP_MINT_LIMIT
+})
+
+afterEach(() => {
+  vi.unstubAllEnvs()
 })
 
 // ──────────────────────────────────────────
@@ -134,22 +156,29 @@ describe('POST /api/auth/fingerprint', () => {
       expect(setCookie.toLowerCase()).toContain('httponly')
     })
 
-    it('cookie is secure', async () => {
-      // Requirements: 9.2
-      const req = makeRequest(VALID_BODY)
-      const res = await POST(req)
+    it('cookie is secure and sameSite=strict in production', async () => {
+      // Requirements: 9.2. Both flags are conditional on NODE_ENV: a `secure`
+      // cookie is never stored over plain http, which would lock the whole
+      // chat out of a local dev session, and `strict` breaks the same-site
+      // check across localhost ports. Production is the case the requirement
+      // is about, so the test has to say so.
+      vi.stubEnv('NODE_ENV', 'production')
 
-      const setCookie = res.headers.get('set-cookie') ?? ''
-      expect(setCookie.toLowerCase()).toContain('secure')
+      const res = await POST(makeRequest(VALID_BODY))
+
+      const setCookie = (res.headers.get('set-cookie') ?? '').toLowerCase()
+      expect(setCookie).toContain('secure')
+      expect(setCookie).toContain('samesite=strict')
     })
 
-    it('cookie has sameSite=strict', async () => {
-      // Requirements: 9.2
-      const req = makeRequest(VALID_BODY)
-      const res = await POST(req)
+    it('drops both flags outside production so local dev can hold the cookie', async () => {
+      vi.stubEnv('NODE_ENV', 'development')
 
-      const setCookie = res.headers.get('set-cookie') ?? ''
-      expect(setCookie.toLowerCase()).toContain('samesite=strict')
+      const res = await POST(makeRequest(VALID_BODY))
+
+      const setCookie = (res.headers.get('set-cookie') ?? '').toLowerCase()
+      expect(setCookie).not.toContain('secure')
+      expect(setCookie).toContain('samesite=lax')
     })
 
     it('response body is empty — no token leak', async () => {
@@ -238,6 +267,61 @@ describe('POST /api/auth/fingerprint', () => {
       const res = await POST(req)
 
       expect(res.status).toBe(400)
+    })
+  })
+
+  // ── IP blacklist ────────────────────────────────────────────────────────
+  //
+  // Enforced here rather than in middleware, which runs on the Edge Runtime
+  // and cannot reach Redis.
+
+  describe('IP blacklist', () => {
+    it('returns 403 for a blocked IP before it mints anything', async () => {
+      vi.mocked(redis.get).mockImplementation(async (key) => {
+        if (key === 'blocked:1.2.3.4') return '1'
+        return null
+      })
+
+      const req = makeRequestWithHeaders(VALID_BODY, { 'x-forwarded-for': '1.2.3.4' })
+      const res = await POST(req)
+
+      expect(res.status).toBe(403)
+      expect(await res.json()).toEqual({ error: 'Forbidden' })
+      expect(redis.set).not.toHaveBeenCalled()
+    })
+  })
+
+  // ── Mint rate limit ─────────────────────────────────────────────────────
+
+  describe('mint rate limit', () => {
+    it('returns 429 once an IP has minted more than the allowed number of tokens', async () => {
+      process.env.FP_MINT_LIMIT = '10'
+      vi.mocked(redis.incr).mockResolvedValue(11)
+
+      const res = await POST(makeRequest(VALID_BODY))
+
+      expect(res.status).toBe(429)
+      expect(redis.set).not.toHaveBeenCalled()
+    })
+
+    it('sets the 1-hour window on the first mint from an IP, and only then', async () => {
+      vi.mocked(redis.incr).mockResolvedValue(1)
+      await POST(makeRequest(VALID_BODY))
+      expect(redis.expire).toHaveBeenCalledWith('fp-mint:unknown', 3600)
+
+      vi.mocked(redis.expire).mockClear()
+      vi.mocked(redis.incr).mockResolvedValue(2)
+      await POST(makeRequest(VALID_BODY))
+      expect(redis.expire).not.toHaveBeenCalled()
+    })
+
+    it('spends no mint budget on a visitor who already holds a valid token', async () => {
+      // The shortcut for a returning visitor runs before the counter, so a
+      // browser that reloads all day cannot rate-limit itself out.
+      const res = await POST(makeRequest(VALID_BODY, { fp_token: VALID_TOKEN }))
+
+      expect(res.status).toBe(200)
+      expect(redis.incr).not.toHaveBeenCalled()
     })
   })
 })

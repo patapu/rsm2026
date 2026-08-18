@@ -776,6 +776,65 @@ describe('POST /api/chat', () => {
 })
 
 // ──────────────────────────────────────────
+//  IP blacklist
+//
+//  Enforced here rather than in middleware, which runs on the Edge Runtime
+//  and cannot reach Redis. middleware.test.ts asserts the other half: that
+//  middleware stays out of the way instead of faking the check.
+// ──────────────────────────────────────────
+
+describe('POST /api/chat — IP blacklist', () => {
+  it('returns 403 for a blocked IP without ever reaching the model', async () => {
+    vi.mocked(redis.get).mockImplementation(async (key) => {
+      if (key === 'blocked:1.2.3.4') return '1'
+      return null
+    })
+
+    const req = makeRequest(
+      { message: VALID_MESSAGE },
+      { fp_token: VALID_TOKEN },
+      { 'x-forwarded-for': '1.2.3.4' },
+    )
+    const res = await POST(req)
+
+    expect(res.status).toBe(403)
+    expect(await res.json()).toEqual({ error: 'Forbidden' })
+    expect(generateText).not.toHaveBeenCalled()
+  })
+
+  it('reads the first entry of x-forwarded-for, not the whole chain', async () => {
+    // The client IP is the leftmost hop. Matching on the raw header would let
+    // a blocked visitor escape by adding a proxy in front.
+    vi.mocked(redis.get).mockImplementation(async (key) => {
+      if (key === 'blocked:1.2.3.4') return '1'
+      return null
+    })
+
+    const req = makeRequest(
+      { message: VALID_MESSAGE },
+      { fp_token: VALID_TOKEN },
+      { 'x-forwarded-for': '1.2.3.4, 5.6.7.8' },
+    )
+    const res = await POST(req)
+
+    expect(res.status).toBe(403)
+  })
+
+  it('lets a request from an unblocked IP through', async () => {
+    vi.mocked(redis.get).mockResolvedValue(null)
+
+    const req = makeRequest(
+      { message: VALID_MESSAGE },
+      { fp_token: VALID_TOKEN },
+      { 'x-forwarded-for': '5.6.7.8' },
+    )
+    const res = await POST(req)
+
+    expect(res.status).toBe(200)
+  })
+})
+
+// ──────────────────────────────────────────
 //  Streaming reply (Accept: text/event-stream)
 // ──────────────────────────────────────────
 
