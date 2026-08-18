@@ -397,44 +397,49 @@ export default function ChatInterface() {
           </AnimatePresence>
 
           {isLoading && (
-            <div className="flex justify-start mb-3">
-              <div
-                className="bg-[rgba(255,0,255,0.1)] border border-[rgba(255,0,255,0.3)] rounded-lg px-3 py-2"
-                // The status text replaces the label when present, otherwise a
-                // screen reader would hear "Typing" and never what the agent is
-                // actually doing.
-                aria-label={statusLabel ?? t('chat.typingAriaLabel')}
-                role="status"
-              >
-                <div className="flex items-center gap-1.5">
+            <motion.div
+              className="flex flex-col items-start gap-1.5 mb-3"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25, ease: 'easeOut' }}
+              // The status text replaces the label when present, otherwise a
+              // screen reader would hear "Typing" and never what the agent is
+              // actually doing.
+              aria-label={statusLabel ?? t('chat.typingAriaLabel')}
+              role="status"
+            >
+              {statusLabel && (
+                <motion.span
+                  // Keyed on the text so each new status fades in on its own
+                  // rather than snapping over the previous one mid-request.
+                  key={statusLabel}
+                  data-testid="agent-status"
+                  initial={{ opacity: 0, y: 3 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, ease: 'easeOut' }}
+                  // The line sits above the bubble now instead of inside it,
+                  // so it gets a full row and can run wider before it has to
+                  // ellipsise. The cap is still what makes `truncate` fire.
+                  className="pl-1 min-w-0 max-w-[16rem] sm:max-w-lg truncate font-mono uppercase tracking-wider text-[11px] text-[rgba(255,0,255,0.75)]"
+                >
+                  {statusLabel}
+                </motion.span>
+              )}
+              <div className="chat-bubble-breathe bg-[rgba(255,0,255,0.1)] border border-[rgba(255,0,255,0.3)] rounded-lg px-3.5 py-2.5">
+                <div className="flex items-center gap-2">
                   {[0, 1, 2].map((d) => (
-                    <motion.span
+                    <span
                       key={d}
-                      className="inline-block w-1.5 h-1.5 rounded-full bg-[#FF00FF] shadow-[0_0_6px_rgba(255,0,255,0.8)]"
-                      animate={{ y: [0, -4, 0], opacity: [0.4, 1, 0.4] }}
-                      transition={{
-                        duration: 0.9,
-                        repeat: Infinity,
-                        delay: d * 0.15,
-                        ease: 'easeInOut',
-                      }}
+                      className="chat-dot inline-block w-2 h-2 rounded-full bg-[#FF00FF]"
+                      // Staggered by roughly an eighth of the cycle, so the
+                      // three dots read as one travelling wave rather than
+                      // three separate blinks.
+                      style={{ animationDelay: `${d * 0.16}s` }}
                     />
                   ))}
-                  {statusLabel && (
-                    <span
-                      data-testid="agent-status"
-                      // An explicit max-width is what makes `truncate` fire.
-                      // The bubble is a flex item sized by its content, so
-                      // without a cap here a long topic list would push the
-                      // bubble past the viewport instead of ellipsising.
-                      className="ml-1.5 min-w-0 max-w-[15rem] sm:max-w-md truncate font-mono uppercase tracking-wider text-[11px] text-[#FF00FF]"
-                    >
-                      {statusLabel}
-                    </span>
-                  )}
                 </div>
               </div>
-            </div>
+            </motion.div>
           )}
 
           {error && (

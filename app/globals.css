@@ -272,6 +272,55 @@ body::after {
   }
 }
 
+/* Chat "agent is working" indicator.
+
+   Driven by CSS keyframes rather than JS so the wave keeps its own cadence
+   while React re-renders the streaming reply above it, and so the browser can
+   hand transform/opacity to the compositor instead of the main thread. */
+@keyframes chat-dot-wave {
+  0%, 100% { transform: translateY(0) scale(0.72); opacity: 0.3; }
+  30%      { transform: translateY(-6px) scale(1.15); opacity: 1; }
+}
+
+/* A slow breath on the bubble itself. Between dot bounces the block used to be
+   completely static, which is what made it read as hung rather than working. */
+@keyframes chat-bubble-breathe {
+  0%, 100% {
+    border-color: rgba(255, 0, 255, 0.25);
+    box-shadow: 0 0 0 rgba(255, 0, 255, 0);
+  }
+  50% {
+    border-color: rgba(255, 0, 255, 0.55);
+    box-shadow: 0 0 16px rgba(255, 0, 255, 0.28);
+  }
+}
+
+@keyframes chat-dot-fade {
+  0%, 100% { opacity: 0.3; }
+  50%      { opacity: 1; }
+}
+
+.chat-dot {
+  animation: chat-dot-wave 1.3s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  box-shadow: 0 0 8px rgba(255, 0, 255, 0.85);
+  will-change: transform, opacity;
+}
+
+.chat-bubble-breathe {
+  animation: chat-bubble-breathe 2.4s ease-in-out infinite;
+}
+
+/* Reduced motion drops the travel and the glow, but not the animation itself:
+   a frozen indicator is exactly the "it has hung" reading we are fixing. */
+@media (prefers-reduced-motion: reduce) {
+  .chat-dot {
+    animation: chat-dot-fade 1.8s ease-in-out infinite;
+  }
+  .chat-bubble-breathe {
+    animation: none;
+  }
+}
+
 /* Terminal-style horizontal accent line */
 .terminal-line::before {
   content: ">";
