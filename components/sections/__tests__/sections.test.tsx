@@ -38,9 +38,9 @@ describe("Hero Section", () => {
     expect(matches.length).toBeGreaterThan(0);
   });
 
-  it("shows title 'Lead Developer'", () => {
+  it("shows title 'Lead Developer, AI Systems'", () => {
     render(<Hero />);
-    expect(screen.getByText("Lead Developer")).toBeTruthy();
+    expect(screen.getByText("Lead Developer, AI Systems")).toBeTruthy();
   });
 
   it("shows tagline", () => {

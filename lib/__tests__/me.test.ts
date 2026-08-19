@@ -348,7 +348,7 @@ describe('ME singleton', () => {
   it('ME data matches expected values', () => {
     expect(ME.profile.firstName).toBe('Pakorn')
     expect(ME.profile.firstNameTH).toBe('ปกร')
-    expect(ME.profile.title).toBe('Lead Developer')
+    expect(ME.profile.title).toBe('Lead Developer, AI Systems')
     expect(ME.contact.email).toBe('patapuputapa@gmail.com')
     expect(ME.contact.phone).toBe('0885797989')
     expect(ME.summary.yearsOfExperience).toBe(8)

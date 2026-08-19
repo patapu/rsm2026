@@ -222,6 +222,24 @@ const projectsEn: Record<string, { description: string; role: string; highlights
       "Modular by design, so it works bundled or on its own",
     ],
   },
+
+  "Resume RAG Assistant": {
+    description:
+      "A RAG system that answers questions about my experience in real time, live at resume.kurpakorn.com. I built every layer myself: chunking, embeddings, vector retrieval, the agent loop, SSE streaming, and an evaluation harness that measures hallucination.",
+    role: "Solo Architect & Developer. Designed and built the whole system, including the evaluation harness",
+    highlights: [
+      "Real RAG instead of stuffing the whole CV into the prompt. The model calls a searchResume tool and pulls back only the relevant chunks, so the content can grow without hitting context limits",
+      "Asymmetric embedding: chunks are embedded as RETRIEVAL_DOCUMENT and questions as RETRIEVAL_QUERY, using gemini-embedding-001 constrained to 768 dimensions to match the column",
+      "Vector search on pgvector using cosine distance to return the nearest top-k, with a pooled singleton connection so load cannot exhaust Postgres",
+      "Agent loop bounded with stepCountIs, and a deliberate split between what belongs in the system prompt and what should be retrieved at runtime",
+      "Fixed the dead air on the first token, 6.9 seconds locally and 11.5 in production, by reading the full stream rather than only the text stream and forwarding every tool call event as its own SSE frame, turning the wait into visible progress",
+      "Sends an empty comment frame the moment the connection opens so proxies do not drop it while idle, plus a non-streaming fallback for proxies that strip SSE",
+      "Retrieval eval measuring Hit@K and MRR, so I can tell whether the correct chunk ranks first rather than merely appearing in top-k",
+      "Answer eval as LLM-as-judge measuring groundedness. The judge sees only the question, the retrieved chunks, and the answer, and is barred from using its own knowledge. Verdicts come back as validated JSON",
+      "The eval set is split into easy, ambiguous, and adversarial buckets, where the adversarial bucket tests whether the bot admits it does not know instead of inventing experience",
+      "It is a public endpoint, so it carries rate limits keyed on both IP and visitor, fingerprint cookies, IP blocklisting, schema validation on every request, and full Thai and English support",
+    ],
+  },
 }
 
 // ──────────────────────────────────────────
@@ -254,7 +272,7 @@ export const rawMeDataEn = {
 
   summary: {
     ...rawMeData.summary,
-    bio: "Hi, I am a Lead Developer with 8 years of experience. My work spans architecture, database schema design, production deployment, and leading a team building CRM platforms for 15+ enterprise clients such as Millennium Auto and CP-Meiji. What I enjoy most is building config-driven systems that teams can extend without waiting on a developer, and these days I work AI-first with Claude Code.",
+    bio: "Hi, I am a Lead Developer with 8 years of experience. My work spans architecture, database schema design, production deployment, and leading a team building CRM platforms for 15+ enterprise clients such as Millennium Auto and CP-Meiji. What I enjoy most is building config-driven systems that teams can extend without waiting on a developer, and these days I work AI-first with Claude Code and build AI systems myself. This whole site is a RAG system I built end to end, from chunking and embeddings through vector retrieval and the agent loop to an evaluation harness that measures hallucination.",
     highlights: [
       "Built CRM platforms for 15+ enterprise clients, each with its own configuration",
       "Built config-driven systems that brought new-page work down from 2-3 days to 2-3 hours",
@@ -263,6 +281,7 @@ export const rawMeDataEn = {
       "Runs CI/CD on Docker, Nginx, Jenkins, and Kubernetes across Azure and IBM Cloud",
       "CRM across 90+ pages, covering Lead, Opportunity, and on to Customer 360",
       "Real-time on Socket.IO: chat, AI chatbot, live notifications",
+      "Built a RAG system on pgvector end to end, with evals covering both retrieval (Hit@K, MRR) and answer groundedness",
     ],
   },
 
@@ -278,6 +297,10 @@ export const rawMeDataEn = {
       "Multi-tenant SaaS Architecture Design",
       "Real-time System Design (WebSocket, Event-driven)",
       "AI-Assisted Development with Claude Code",
+      "RAG Architecture (chunking, embedding, vector retrieval)",
+      "LLM Agent & Tool-Calling Design",
+      "RAG Evaluation (Hit@K, MRR, LLM-as-judge groundedness)",
+      "Hallucination Testing & Guardrails",
     ],
   },
 

@@ -11,7 +11,7 @@ export const rawMeData = {
     lastNameTH: "เชาวนประเสริฐ",
     nickname: "Kur",
     nicknameTH: "เกื้อ",
-    title: "Lead Developer",
+    title: "Lead Developer, AI Systems",
     tagline: "ตั้งใจสร้างระบบที่ scale ได้จริง และเขียน code ที่เพื่อนร่วมทีมอ่านต่อได้สบาย",
     location: "Bangna Bangkok, Thailand",
     gender: "male" as const,
@@ -27,7 +27,7 @@ export const rawMeData = {
   },
 
   summary: {
-    bio: "สวัสดีครับ ผมเป็น Lead Developer ประสบการณ์ 8 ปี งานที่ทำมีทั้งออกแบบ architecture วาง database schema ดูแล production และนำทีมทำ CRM platform ให้ลูกค้าองค์กรมากกว่า 15 ราย เช่น Millennium Auto และ CP-Meiji ส่วนที่ผมชอบที่สุดคือการทำระบบ config-driven ที่ทีมเอาไปต่อยอดเองได้โดยไม่ต้องรอ dev ช่วงหลังผมทำงานแบบ AI-first ใช้ Claude Code เป็นเครื่องมือหลักครับ",
+    bio: "สวัสดีครับ ผมเป็น Lead Developer ประสบการณ์ 8 ปี งานที่ทำมีทั้งออกแบบ architecture วาง database schema ดูแล production และนำทีมทำ CRM platform ให้ลูกค้าองค์กรมากกว่า 15 ราย เช่น Millennium Auto และ CP-Meiji ส่วนที่ผมชอบที่สุดคือการทำระบบ config-driven ที่ทีมเอาไปต่อยอดเองได้โดยไม่ต้องรอ dev ช่วงหลังผมทำงานแบบ AI-first ใช้ Claude Code เป็นเครื่องมือหลัก และลงมือสร้างระบบ AI เองด้วย เว็บนี้ทั้งเว็บคือระบบ RAG ที่ผมทำครบตั้งแต่ chunking, embedding, vector retrieval, agent loop ไปจนถึง evaluation harness ที่วัด hallucination ครับ",
     yearsOfExperience: 8,
     highlights: [
       "ทำ CRM platform ให้ลูกค้าองค์กร 15+ ราย แต่ละรายตั้ง config ของตัวเองบน codebase เดียว",
@@ -37,6 +37,7 @@ export const rawMeData = {
       "วาง CI/CD ด้วย Docker, Nginx, Jenkins, Kubernetes รันบน Azure และ IBM Cloud",
       "ทำ CRM กว่า 90 หน้า ครอบคลุมงานหลายส่วน เช่น Lead, Opportunity ไปจนถึง Customer 360",
       "ทำ real-time feature ด้วย Socket.IO เช่น chat, AI chatbot, live notification",
+      "สร้างระบบ RAG บน pgvector เองครบทุกชั้น พร้อม eval ที่วัดทั้ง retrieval (Hit@K, MRR) และ groundedness ของคำตอบ",
     ],
   },
 
@@ -54,6 +55,8 @@ export const rawMeData = {
       "Redis",
       "Docker",
       "Claude Code",
+      "Vercel AI SDK",
+      "pgvector",
     ],
     languages: [
       { name: "JavaScript", level: 90 },
@@ -72,6 +75,7 @@ export const rawMeData = {
     ],
     databases: [
       { name: "PostgreSQL", level: 85 },
+      { name: "pgvector", level: 80 },
       { name: "MySQL", level: 70 },
       { name: "Redis", level: 85 },
     ],
@@ -88,6 +92,7 @@ export const rawMeData = {
       { name: "GitHub Copilot", level: 70 },
       { name: "Kiro (AI IDE)", level: 75 },
       { name: "Claude Code", level: 85 },
+      { name: "Vercel AI SDK", level: 85 },
     ],
     softSkills: [
       "Config-driven System Design",
@@ -99,6 +104,10 @@ export const rawMeData = {
       "Multi-tenant SaaS Architecture Design",
       "Real-time System Design (WebSocket, Event-driven)",
       "AI-Assisted Development ด้วย Claude Code",
+      "RAG Architecture (chunking, embedding, vector retrieval)",
+      "LLM Agent และ Tool-Calling Design",
+      "RAG Evaluation (Hit@K, MRR, LLM-as-judge groundedness)",
+      "Hallucination Testing และการวาง guardrail",
     ],
   },
 
@@ -185,6 +194,26 @@ export const rawMeData = {
         "Role-based access control และ visible function system",
         "Azure AD SSO ให้ลูกค้า enterprise",
         "Landing Page Builder ให้ทีม marketing ใช้เอง",
+      ],
+    },
+    {
+      name: "Resume RAG Assistant",
+      category: "AI / RAG System",
+      description: "ระบบ RAG ที่ตอบคำถามเกี่ยวกับประสบการณ์ผมได้แบบ real-time อยู่บน resume.kurpakorn.com ทำเองครบทุกชั้นตั้งแต่ chunking, embedding, vector retrieval, agent loop, SSE streaming ไปจนถึง evaluation harness ที่วัด hallucination",
+      role: "Solo Architect และ Developer ออกแบบและพัฒนาเองทั้งหมด รวมถึงวาง evaluation harness เอง",
+      liveUrl: "https://resume.kurpakorn.com",
+      techStack: ["Next.js 16", "React 19", "TypeScript", "Vercel AI SDK v7", "Gemini", "pgvector", "PostgreSQL", "Redis", "Zod", "Vitest", "fast-check", "Docker", "Claude Code"],
+      highlights: [
+        "ทำ RAG จริงแทนการยัดเรซูเม่ทั้งฉบับเข้า prompt โมเดลเรียก tool searchResume ดึงเฉพาะ chunk ที่เกี่ยวข้อง เนื้อหาจึงขยายได้โดยไม่ชน context limit",
+        "Asymmetric embedding แยก RETRIEVAL_DOCUMENT สำหรับ chunk กับ RETRIEVAL_QUERY สำหรับคำถาม ใช้ gemini-embedding-001 บีบเหลือ 768 มิติให้ตรงกับ column",
+        "Vector search บน pgvector ด้วย cosine distance คืน top-k ที่ใกล้ที่สุด พร้อม connection pool singleton กัน connection บาน",
+        "Agent loop คุมจำนวน step ด้วย stepCountIs และแยกชัดว่าข้อมูลไหนควรอยู่ใน system prompt ข้อมูลไหนควรดึงตอน runtime",
+        "แก้ dead air ตอนแรกที่ 6.9 วินาทีบนเครื่อง และ 11.5 วินาทีบน production ด้วยการอ่าน fullStream แล้ว forward tool call event ออกเป็น SSE frame ทำให้ช่วงรอกลายเป็นความคืบหน้าที่ผู้ใช้มองเห็น",
+        "ยิง comment frame ว่างทันทีที่เปิดคอนเนกชัน กัน proxy ตัดคอนเนกชันที่ยัง idle และมี fallback แบบไม่ stream เผื่อ proxy กิน SSE",
+        "Retrieval eval วัด Hit@K และ MRR เพื่อดูว่า chunk ที่ถูกถูกจัดอันดับสูงจริง ไม่ใช่แค่ติดอยู่ใน top-k",
+        "Answer eval แบบ LLM-as-judge วัด groundedness โดย judge เห็นแค่คำถาม chunk ที่ดึงมา และคำตอบ ห้ามใช้ความรู้ของตัวเอง ผลออกมาเป็น JSON ที่ validate แล้ว",
+        "ชุดคำถาม eval แบ่งเป็น easy, ambiguous, adversarial โดยถัง adversarial วัดว่าบอทยอมบอกว่าไม่รู้แทนการแต่งเรื่อง",
+        "เป็น public endpoint จึงมี rate limit ผูกทั้ง IP และ visitor, fingerprint cookie, IP blacklist, Zod validation ทุก request และรองรับไทยอังกฤษเต็มระบบ",
       ],
     },
     {

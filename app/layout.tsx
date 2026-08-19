@@ -17,8 +17,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 const TITLE: Record<Locale, string> = {
-  th: "ปกร เชาวนประเสริฐ | Lead Developer",
-  en: "Pakorn Chaowanaprasert | Lead Developer",
+  th: "ปกร เชาวนประเสริฐ | Lead Developer, AI Systems",
+  en: "Pakorn Chaowanaprasert | Lead Developer, AI Systems",
 };
 
 const DESCRIPTION: Record<Locale, string> = {
