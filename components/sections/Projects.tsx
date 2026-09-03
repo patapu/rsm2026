@@ -57,7 +57,7 @@ export default function Projects() {
                       href={project.repoUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[#00FFFF] font-mono text-xs hover:neon-text-cyan transition-all"
+                      className="inline-flex items-center py-1 text-[#00FFFF] font-mono text-xs hover:neon-text-cyan transition-all"
                     >
                       {t("projects.repository")}
                     </Link>
@@ -67,7 +67,7 @@ export default function Projects() {
                       href={project.liveUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[#00FFFF] font-mono text-xs hover:neon-text-cyan transition-all"
+                      className="inline-flex items-center py-1 text-[#00FFFF] font-mono text-xs hover:neon-text-cyan transition-all"
                     >
                       {t("projects.liveDemo")}
                     </Link>

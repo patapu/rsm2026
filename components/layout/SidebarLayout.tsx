@@ -24,6 +24,12 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
 
   return (
     <div className="flex min-h-screen">
+      {/* Keyboard users can jump past the navigation. Styled in globals.css;
+          it stays off-screen until it receives focus. */}
+      <a href="#main-content" className="skip-link">
+        {t("nav.skipToContent")}
+      </a>
+
       {/* Left sidebar — sticky navigation */}
       <aside className="hidden md:flex w-52 flex-shrink-0 border-r-2 border-[rgba(0,255,255,0.3)] bg-[rgba(5,5,10,0.6)] backdrop-blur-sm">
         <nav className="sticky top-0 h-screen p-4 pt-8 flex flex-col">
@@ -36,6 +42,7 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
               <Link
                 key={href}
                 href={href}
+                aria-current={pathname === href ? "page" : undefined}
                 className={`block text-sm py-2 px-3 rounded-md transition-colors ${
                   pathname === href
                     ? "text-[#00FFFF] font-mono font-medium bg-[rgba(0,255,255,0.1)] border-l-2 border-[#00FFFF] neon-text-cyan"
@@ -52,19 +59,25 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
         </nav>
       </aside>
 
-      {/* Mobile header */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-[rgba(5,5,10,0.85)] backdrop-blur-sm border-b-2 border-[rgba(0,255,255,0.3)] px-4 py-3 flex items-center gap-2">
-        <p className="font-mono text-lg font-bold neon-text-cyan tracking-widest shrink-0">&gt;_ ปกร</p>
-        {/* min-w-0 lets the nav shrink instead of pushing the switcher off-screen
-            on narrow viewports; the switcher itself must never shrink. */}
-        <nav className="flex gap-2 flex-1 min-w-0 overflow-x-auto">
+      {/* Mobile header. Two rows: identity plus the language switcher on top,
+          the three nav links underneath, each taking an equal share of the
+          width. A single row overflowed at 375px, which pushed "Contact" behind
+          a horizontal scrollbar. The height is --mobile-header-h (globals.css)
+          so <main> and the chat viewport reserve exactly that much space. */}
+      <header className="md:hidden fixed top-0 left-0 right-0 z-50 h-(--mobile-header-h) bg-[rgba(5,5,10,0.85)] backdrop-blur-sm border-b-2 border-[rgba(0,255,255,0.3)] px-3 pt-2 pb-1.5 flex flex-col justify-between">
+        <div className="flex items-center justify-between">
+          <p className="font-mono text-lg leading-7 font-bold neon-text-cyan tracking-widest">&gt;_ ปกร</p>
+          <LanguageSwitcher />
+        </div>
+        <nav className="flex gap-1">
           {NAV_ITEMS.map(({ labelKey, href }) => (
             <Link
               key={href}
               href={href}
-              className={`text-sm py-1 px-2 rounded-md transition-colors font-mono ${
+              aria-current={pathname === href ? "page" : undefined}
+              className={`flex-1 text-center text-sm py-1 rounded-md transition-colors font-mono ${
                 pathname === href
-                  ? "text-[#00FFFF] font-medium bg-[rgba(0,255,255,0.1)] border-l-2 border-[#00FFFF] neon-text-cyan"
+                  ? "text-[#00FFFF] font-medium bg-[rgba(0,255,255,0.1)] border-b-2 border-[#00FFFF] neon-text-cyan"
                   : "text-foreground-500 hover:text-[#00FFFF]"
               }`}
             >
@@ -72,13 +85,10 @@ export default function SidebarLayout({ children }: { children: React.ReactNode 
             </Link>
           ))}
         </nav>
-        <div className="shrink-0">
-          <LanguageSwitcher />
-        </div>
-      </div>
+      </header>
 
-      {/* Main content area */}
-      <main className="flex-1 min-w-0 mt-14 md:mt-0">
+      {/* Main content area. tabIndex lets the skip link land focus here. */}
+      <main id="main-content" tabIndex={-1} className="flex-1 min-w-0 mt-(--mobile-header-h) outline-none">
         <PageTransition>{children}</PageTransition>
       </main>
     </div>

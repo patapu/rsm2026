@@ -9,6 +9,46 @@ html {
   scrollbar-gutter: stable;
 }
 
+/* Height of the fixed mobile header in SidebarLayout. Published as a token so
+   <main> (top margin) and the chat viewport (height calc) reserve exactly the
+   same space without measuring the DOM. Zero from `md` up, where the sidebar
+   replaces the header. A media query rem is the browser's 16px, not the 120%
+   root above, so 48rem is Tailwind's 768px breakpoint. */
+:root {
+  --mobile-header-h: 4.5rem;
+}
+@media (min-width: 48rem) {
+  :root {
+    --mobile-header-h: 0px;
+  }
+}
+
+/* Skip-to-content link: parked above the viewport until it receives keyboard
+   focus. z-index clears the scanline and vignette overlays (9998 / 9999). */
+.skip-link {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 10000;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #00FFFF;
+  border-radius: 0.375rem;
+  background: #05050a;
+  color: #00FFFF;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  transform: translateY(-200%);
+  transition: transform 0.15s ease-out;
+}
+/* `:focus` rather than `:focus-visible`: the link is only ever reached by
+   keyboard or assistive tech, and some browsers do not flag a script-driven
+   or AT-driven focus as "visible", which would leave the link hidden. */
+.skip-link:focus {
+  transform: none;
+  outline: none;
+  box-shadow: 0 0 0 2px #05050a, 0 0 0 4px #00FFFF;
+}
+
 /* ─────────────────────────────────────────
    Cyberpunk palette tokens (Tailwind v4 @theme)
    ───────────────────────────────────────── */
@@ -138,6 +178,17 @@ body::after {
   z-index: 9999;
   background:
     radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+/* HeroUI chips are `flex-shrink: 0` with a single-line height, so a long
+   label (the soft skills, the courses, the "learning now" item) ran off its
+   card on phones instead of wrapping. Let every chip shrink to its container
+   and grow in height; a chip that fits on one line renders exactly as before. */
+.chip {
+  flex-shrink: 1;
+  max-width: 100%;
+  height: auto;
+  text-align: left;
 }
 
 /* ─────────────────────────────────────────

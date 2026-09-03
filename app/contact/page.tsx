@@ -36,7 +36,7 @@ export default function ContactPage() {
             <h2 className="text-sm font-medium text-foreground-500 mb-1">{t("contact.email")}</h2>
             <a
               href={`mailto:${contact.email}`}
-              className="text-primary hover:underline text-lg"
+              className="text-primary hover:underline text-lg break-all"
               data-testid="contact-email"
             >
               {contact.email}

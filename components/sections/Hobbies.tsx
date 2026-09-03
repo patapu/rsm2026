@@ -22,15 +22,18 @@ export default function Hobbies() {
 
   return (
     <AnimatedSection id="hobbies" title={t("sections.hobbies")} withSeparator={false}>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+      {/* Three columns only from xl: at md/lg the left sidebar (and from lg
+          the right one) leave each tile about 130px, and the name next to
+          the emoji was squeezed into a 19px column and clipped. */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
         {hobbies.map((hobby) => (
           <SubCard key={hobby.name}>
             <div className="flex items-center gap-3">
               <span className="text-3xl" role="img" aria-label={hobby.name}>
                 {hobby.icon}
               </span>
-              <div>
-                <p className="text-foreground font-medium">{hobby.name}</p>
+              <div className="min-w-0">
+                <p className="text-foreground font-medium break-words">{hobby.name}</p>
                 <FrequencyStars
                   frequency={hobby.frequency}
                   label={t("hobbies.frequencyLabel", { n: hobby.frequency })}

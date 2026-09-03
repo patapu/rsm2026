@@ -350,7 +350,11 @@ export default function ChatInterface() {
       : t(toolStatus)
 
   return (
-    <div className="flex flex-col h-[calc(100vh-64px)]" data-testid="chat-interface">
+    // Fill the viewport below the mobile header (zero from `md` up, see
+    // --mobile-header-h in globals.css). The old fixed 64px left a dead band
+    // under the composer on desktop, and `dvh` tracks the phone browser chrome.
+    <div className="flex flex-col h-[calc(100dvh-var(--mobile-header-h))]" data-testid="chat-interface">
+      <h1 className="sr-only">{t('nav.chat')}</h1>
       {/* Messages area. `aria-busy` while a reply is arriving holds back the
           live region until the reply is complete — otherwise a screen reader
           would re-announce the message on every streamed delta. */}

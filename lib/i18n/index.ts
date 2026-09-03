@@ -59,6 +59,7 @@ const en = {
   'nav.chat': 'Chat',
   'nav.resume': 'Resume',
   'nav.contact': 'Contact',
+  'nav.skipToContent': 'Skip to content',
 
   'sections.introduction': 'Introduction',
   'sections.summary': 'Summary',
@@ -122,6 +123,7 @@ const th: Record<MessageKey, string> = {
   'nav.chat': 'แชท',
   'nav.resume': 'เรซูเม่',
   'nav.contact': 'ติดต่อ',
+  'nav.skipToContent': 'ข้ามไปยังเนื้อหา',
 
   'sections.introduction': 'บทนำ',
   'sections.summary': 'สรุป',

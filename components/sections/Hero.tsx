@@ -39,12 +39,20 @@ export default function Hero() {
             <Avatar.Fallback>{displayNickname}</Avatar.Fallback>
           </Avatar>
 
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-mono font-bold uppercase tracking-widest neon-text-cyan mb-2">
+          {/* Fluid size plus `break-words`, so a long single-word surname never
+              spills out of the card: the old fixed steps clipped
+              "CHAOWANAPRASERT" on every viewport narrower than 2xl. The explicit
+              space before the nickname keeps it a separate word; without it
+              "SURNAME(KUR)" rendered as one unbreakable token. */}
+          <h1 className="text-[clamp(1.125rem,6.4vw,1.75rem)] md:text-[clamp(1.5rem,3.6vw,3rem)] font-mono font-bold uppercase tracking-wider neon-text-cyan mb-2 break-words">
             {displayFirstName} {displayLastName}
             {displayNickname && (
-              <span className="text-foreground-500 text-xl sm:text-2xl ml-2 sm:ml-3">
-                ({displayNickname})
-              </span>
+              <>
+                {" "}
+                <span className="text-foreground-500 text-[0.6em] whitespace-nowrap">
+                  ({displayNickname})
+                </span>
+              </>
             )}
           </h1>
 
