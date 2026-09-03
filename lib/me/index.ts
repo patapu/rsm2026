@@ -65,9 +65,9 @@ export function getAvailableMessage(now: Date, locale: AvailableMessageLocale = 
 
   if (locale === 'en') {
     const monthName = ENGLISH_MONTHS[target.getMonth()]
-    return `Open to new opportunities — available from ${monthName} ${year}`
+    return `Open to new opportunities, available from ${monthName} ${year}`
   }
 
   const monthName = THAI_MONTHS[target.getMonth()]
-  return `กำลังเปิดรับโอกาสใหม่ — พร้อมเริ่มงานภายใน${monthName} ${year}`
+  return `กำลังเปิดรับโอกาสใหม่ พร้อมเริ่มงานภายใน${monthName} ${year}`
 }
