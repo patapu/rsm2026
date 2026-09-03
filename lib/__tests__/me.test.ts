@@ -376,19 +376,19 @@ describe('getAvailableMessage', () => {
   })
 
   it('shifts the target month by availableMonthsFromNow (site default locale is English)', () => {
-    // ME_EN.cta.availableMonthsFromNow is 2 in the current data
+    // ME_EN.cta.availableMonthsFromNow is 1 in the current data
     const now = new Date(2026, 0, 1) // Jan 2026
     const msg = getAvailableMessage(now)
-    // Jan + 2 = March
-    expect(msg).toContain('March')
+    // Jan + 1 = February
+    expect(msg).toContain('February')
     expect(msg).toContain('2026')
   })
 
   it('handles month overflow into the next year (site default locale is English)', () => {
-    // Dec + 2 = next-year Feb
+    // Dec + 1 = next-year Jan
     const now = new Date(2026, 11, 1) // Dec 2026
     const msg = getAvailableMessage(now)
-    expect(msg).toContain('February')
+    expect(msg).toContain('January')
     expect(msg).toContain('2027')
   })
 

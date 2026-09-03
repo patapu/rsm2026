@@ -389,7 +389,7 @@ export const rawMeData = {
 
   cta: {
     message: "กำลังมองหา Lead Developer ที่ลงมือทำได้ตั้งแต่ architecture ถึง production? มาคุยกันครับ",
-    availableMonthsFromNow: 2,
+    availableMonthsFromNow: 1,
     resumePdfUrl: "/resume-pakorn.pdf",
     resumePdfUrlEn: "/resume-pakorn-en.pdf",
     qrCodeImage: "",
